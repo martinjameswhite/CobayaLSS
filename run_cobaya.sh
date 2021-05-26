@@ -10,7 +10,7 @@
 #
 source activate cobaya
 #
-export PYTHONPATH=${PYTHONPATH}:/global/cscratch1/sd/mwhite/Fitting/Cobaya/lss_likelihood
+export PYTHONPATH=${PYTHONPATH}:/global/cscratch1/sd/mwhite/Fitting/CobayaLSS/lss_likelihood
 export OMP_NUM_THREADS=4
 export NUMEXPR_MAX_THREADS=4
 #
