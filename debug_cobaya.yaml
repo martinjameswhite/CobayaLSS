@@ -1,0 +1,75 @@
+likelihood:
+  lss_likelihood.XiLikelihood:
+    zfid:  0.61
+    mcut:  25.0
+    qcut:  25.0
+    datfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.xis
+    covfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.xiscov
+params:
+  sig8:
+    prior:
+      dist: uniform
+      min:  0.5
+      max:  0.9
+    ref:
+      dist:  norm
+      loc:   0.75
+      scale: 0.025
+    latex: \sigma_8
+  b1:
+    prior:
+      dist: uniform
+      min: -0.5
+      max:  2.0
+    ref:
+      dist:  norm
+      loc:   1.20
+      scale: 0.05
+    latex: b_1
+  b2:
+    prior:
+      dist:  norm
+      loc:   0.
+      scale: 15.
+    ref:
+      dist:  norm
+      loc:   0.0
+      scale: 1.0
+    latex: b_2
+  bs:
+    prior:
+      dist:  norm
+      loc:   0.
+      scale: 5.
+    ref:
+      dist:  norm
+      loc:   0.0
+      scale: 1.0
+    latex: b_s
+  alpha0:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 50.
+    ref:
+      dist:  norm
+      loc:   1.0
+      scale: 0.1
+    latex: \alpha_0
+  alpha2:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 50.
+    ref:
+      dist:  norm
+      loc:   5.0
+      scale: 5.
+    latex: \alpha_2
+sampler:
+  evaluate:
+    override:
+      b2:   0.0
+      bs:   0.0
+output: chains/debug
+stop_on_error: True
