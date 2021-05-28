@@ -3,6 +3,7 @@ mcut:  0.25
 qcut:  0.20
 datfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.pks
 covfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.cov
+winfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.win
 stop_at_error: true
 #
 params:
