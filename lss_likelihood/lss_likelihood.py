@@ -196,7 +196,7 @@ class PkLikelihood(Likelihood):
         bs   = params_values['bs']
         alp0 = params_values['alpha0']
         alp2 = params_values['alpha2']
-        sn0  = params_values['lgSN0'];  sn0 = 10.0**sn0
+        sn0  = params_values['SN0']
         sn2  = params_values['SN2']
         #
         return(0.0)

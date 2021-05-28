@@ -29,10 +29,10 @@ params:
     latex: b_s
   alpha0:
     value: 0.0
-    latex: \alpha_a
+    latex: \alpha_0
   alpha2:
     value: 0.0
-    latex: \alpha_\times
+    latex: \alpha_2
   SN0:
     value: 0.0
     latex: SN_0
