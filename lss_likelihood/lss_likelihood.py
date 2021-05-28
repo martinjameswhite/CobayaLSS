@@ -81,7 +81,7 @@ class XiLikelihood(Likelihood):
         bias = [b1,b2,bs,0.]
         cterm= [alpha0,alpha2,0,0]
         stoch= [0,0,0]
-        pars = bias + cterm + stoch
+        bpars= bias + cterm + stoch
         #
         zfid = self.zfid
         if (np.abs(sig8-self.old_sig8)>0.001)|\
@@ -116,7 +116,7 @@ class XiLikelihood(Likelihood):
             self.old_sig8 = sig8
             self.old_OmM  = OmM
         #
-        xi0,xi2,xi4 = self.modPT.combine_bias_terms_xiell(pars)
+        xi0,xi2,xi4 = self.modPT.combine_bias_terms_xiell(bpars)
         ss = np.linspace(10.0,150.,150)
         xi0= np.interp(ss,xi0[0],xi0[1])
         xi2= np.interp(ss,xi2[0],xi2[1])
