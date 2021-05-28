@@ -96,25 +96,27 @@ class XiLikelihood(Likelihood):
                     'N_ur':2.0328, 'N_ncdm':1,'m_ncdm':0.06,\
                     'z_reio': 7.0, 'omega_b':wb, 'omega_cdm':wc})
             cc.compute()
+            # Compute the growth rate.
+            ff = cc.scale_independent_growth_factor_f(zfid)
+            # and work out the A-P scaling to the fiducial cosmology.
+            Hz   = self.cc.Hubble(zfid)*2997.925/hub
+            chiz = self.cc.angular_distance(zfid)*(1+zfid)*hub
+            apar,aperp = self.Hz_fid/Hz,chiz/self.chiz_fid
             # Need to rescale P(k) to match requested sig8 value.
             Af = (sig8/cc.sigma8())**2
             ki = np.logspace(-3.0,1.5,750)
             pi = np.array([cc.pk_cb(k*hub,zfid)*hub**3*Af for k in ki])
-            # Now save the PT model and CLASS instance.
+            # Now save the PT model
             self.modPT = LPT_RSD(ki,pi,kIR=0.2,one_loop=True,shear=True)
-            self.cc    = cc
+            self.modPT.make_pltable(ff,apar=apar,aperp=aperp,\
+                                    kmin=5e-3,kmax=0.8,nk=60,nmax=4)
+            # and CLASS instance
+            self.cc = cc
             # and update old_sig8 and old_OmM.
             self.old_sig8 = sig8
             self.old_OmM  = OmM
-        # Get the growth factor
-        ff = self.cc.scale_independent_growth_factor_f(zfid)
-        # and work out the A-P scaling to the fiducial cosmology.
-        Hz   = self.cc.Hubble(zfid)*2997.925/hub
-        chiz = self.cc.angular_distance(zfid)*(1+zfid)*hub
-        apar,aperp = self.Hz_fid/Hz,chiz/self.chiz_fid
-        # Now compute the correlation function.
-        xi0,xi2,xi4 = self.modPT.make_xiell_fixedbias(ff,pars,\
-                                           apar=apar,aperp=aperp)
+        #
+        xi0,xi2,xi4 = self.modPT.combine_bias_terms_xiell(pars)
         ss = np.linspace(10.0,150.,150)
         xi0= np.interp(ss,xi0[0],xi0[1])
         xi2= np.interp(ss,xi2[0],xi2[1])
