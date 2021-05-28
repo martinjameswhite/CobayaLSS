@@ -257,10 +257,6 @@ class PkLikelihood(Likelihood):
         self.cinv = np.linalg.inv(self.cov)
         # Finally load the window function matrix.
         self.win = np.loadtxt(self.winfn)
-        #### *******************************
-        #### For now just replace with zero!
-        #### *******************************
-        self.win = np.zeros( (self.dd.size,75) )
         #
     def predict(self,pars):
         """Predict P_ell(k) given the parameters."""
