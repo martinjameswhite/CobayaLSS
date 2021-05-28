@@ -31,10 +31,15 @@ class XiLikelihood(Likelihood):
         self.chiz_fid= cc.angular_distance(self.zfid)*(1+self.zfid)*0.6760
         self.omh3    = 0.09633
         self.old_OmM = -100.0 # Just some unlikely value.
+        self.old_hub = -100.0 # Just some unlikely value.
         self.old_sig8= -100.0 # Just some unlikely value.
     def logp(self,**params_values):
         """Given a dictionary of nuisance parameter values params_values
         return a log-likelihood."""
+        # Currently ns, omegab, etc. are hard-wired.  We could read
+        # these from the params_values as well if we wanted and pass
+        # them through to predict as e.g. self.ns.
+        #
         #H0_theory = self.provider.get_param("H0")
         #cls = self.provider.get_Cl(ell_factor=True)
         OmM  = params_values.get('Omega_m',self.cc.Omega_m())
@@ -85,6 +90,7 @@ class XiLikelihood(Likelihood):
         #
         zfid = self.zfid
         if (np.abs(sig8-self.old_sig8)>0.001)|\
+           (np.abs(hub -self.old_hub )>0.001)|\
            (np.abs(OmM -self.old_OmM )>0.001):
             wb = 0.0224
             wnu= 0.0006442013903673842
@@ -106,18 +112,21 @@ class XiLikelihood(Likelihood):
             Af = (sig8/cc.sigma8())**2
             ki = np.logspace(-3.0,1.5,750)
             pi = np.array([cc.pk_cb(k*hub,zfid)*hub**3*Af for k in ki])
-            # Now save the PT model
+            # Now generate and save the PT model
             self.modPT = LPT_RSD(ki,pi,kIR=0.2,one_loop=True,shear=True)
             self.modPT.make_pltable(ff,apar=apar,aperp=aperp,\
-                                    kmin=5e-3,kmax=0.8,nk=60,nmax=4)
+                                    kmin=1e-3,kmax=0.8,nk=100,nmax=5)
             # and CLASS instance
             self.cc = cc
-            # and update old_sig8 and old_OmM.
+            # and update old_sig8, old_hub and old_OmM.
             self.old_sig8 = sig8
+            self.old_hub  = hub
             self.old_OmM  = OmM
         #
         xi0,xi2,xi4 = self.modPT.combine_bias_terms_xiell(bpars)
-        ss = np.linspace(10.0,150.,150)
+        if np.isnan(xi0).any()|np.isnan(xi2).any()|np.isnan(xi4).any():
+            raise RuntimeError("NaNs in xi computation.")
+        ss = np.linspace(20.0,150.,150)
         xi0= np.interp(ss,xi0[0],xi0[1])
         xi2= np.interp(ss,xi2[0],xi2[1])
         xi4= np.interp(ss,xi4[0],xi4[1])
