@@ -247,7 +247,7 @@ class PkLikelihood(Likelihood):
             cov[ii, :] = 0
             cov[ :,ii] = 0
             cov[ii,ii] = 1e20
-        for i in np.nonzero(self.xx>self.self.qcut)[0]:  # Quadrupole.
+        for i in np.nonzero(self.xx>self.qcut)[0]:       # Quadrupole.
             ii = i + 2*self.xx.size
             cov[ii, :] = 0
             cov[ :,ii] = 0
@@ -306,9 +306,8 @@ class PkLikelihood(Likelihood):
             self.old_sig8 = sig8
             self.old_hub  = hub
             self.old_OmM  = OmM
-        # Compute the growth rate.
-        ff = cc.scale_independent_growth_factor_f(zfid)
-        # and work out the A-P scaling to the fiducial cosmology.
+        # Compute the growth rate and work out the A-P scaling.
+        ff   = self.cc.scale_independent_growth_factor_f(zfid)
         Hz   = self.cc.Hubble(zfid)*2997.925/hub
         chiz = self.cc.angular_distance(zfid)*(1+zfid)*hub
         apar,aperp = self.Hz_fid/Hz,chiz/self.chiz_fid
