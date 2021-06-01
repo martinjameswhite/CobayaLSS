@@ -124,7 +124,8 @@ class XiLikelihood(Likelihood):
         #
         xi0,xi2,xi4 = self.modPT.combine_bias_terms_xiell(bpars)
         if np.isnan(xi0).any()|np.isnan(xi2).any()|np.isnan(xi4).any():
-            raise RuntimeError("NaNs in xi computation.")
+            xi0,xi2,xi4 = self.modPT.combine_bias_terms_xiell(bpars,\
+                            method='gauss_poly')
         ss = np.linspace(20.0,150.,150)
         xi0= np.interp(ss,xi0[0],xi0[1])
         xi2= np.interp(ss,xi2[0],xi2[1])
