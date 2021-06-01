@@ -90,7 +90,9 @@ class XiLikelihood(Likelihood):
         bpars= bias + cterm + stoch
         #
         zfid = self.zfid
-        if (self.old_slow is None)|(not np.allclose(slow,self.old_slow)):
+        if self.old_slow is None:
+            self.old_slow = np.array(slow) + 1
+        if not np.allclose(slow,self.old_slow):
             wb = 0.0224
             wnu= 0.0006442013903673842
             ns = 0.96824
@@ -263,7 +265,9 @@ class PkLikelihood(Likelihood):
         bpars  = biases + cterms + stoch
         #
         zfid = self.zfid
-        if (self.old_slow is None)|(not np.allclose(slow,self.old_slow)):
+        if self.old_slow is None:
+            self.old_slow = np.array(slow) + 1
+        if not np.allclose(slow,self.old_slow):
             wb = 0.0224
             wnu= 0.0006442013903673842
             ns = 0.96824
