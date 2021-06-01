@@ -191,9 +191,7 @@ class PkLikelihood(Likelihood):
         self.Hz_fid  = cc.Hubble(self.zfid)*2997.925/0.6760
         self.chiz_fid= cc.angular_distance(self.zfid)*(1+self.zfid)*0.6760
         self.omh3    = 0.09633# For setting h if not otherwise given.
-        self.old_OmM = -100.0 # Just some unlikely value.
-        self.old_hub = -100.0 # Just some unlikely value.
-        self.old_sig8= -100.0 # Just some unlikely value.
+        self.old_slow= None
         #
     def logp(self,**params_values):
         """Given a dictionary of nuisance parameter values params_values
@@ -216,8 +214,9 @@ class PkLikelihood(Likelihood):
         sn0  = params_values['SN0']
         sn2  = params_values['SN2']
         #
-        pars = [OmM,hub,sig8,b1,b2,bs,alp0,alp2,sn0,sn2]
-        thy  = self.predict(pars)
+        slow = [OmM,hub,sig8]
+        fast = [b1,b2,bs,alp0,alp2,sn0,sn2]
+        thy  = self.predict(fast,slow)
         obs  = self.observe(thy)
         chi2 = np.dot(self.dd-obs,np.dot(self.cinv,self.dd-obs))
         #
@@ -254,18 +253,17 @@ class PkLikelihood(Likelihood):
         # Finally load the window function matrix.
         self.win = np.loadtxt(self.winfn)
         #
-    def predict(self,pars):
+    def predict(self,fast,slow):
         """Predict P_ell(k) given the parameters."""
-        OmM,hub,sig8,b1,b2,bs,alpha0,alpha2,sn0,sn2 = pars
+        OmM,hub,sig8                   = slow
+        b1,b2,bs,alpha0,alpha2,sn0,sn2 = fast
         biases = [b1,b2,bs,0]      # Set b3=0
         cterms = [alpha0,alpha2,0] # Set alpha4=0 if no hexadecapole
         stoch  = [sn0,sn2]
         bpars  = biases + cterms + stoch
         #
         zfid = self.zfid
-        if (np.abs(sig8-self.old_sig8)>0.001)|\
-           (np.abs(hub -self.old_hub )>0.001)|\
-           (np.abs(OmM -self.old_OmM )>0.001):
+        if (self.old_slow is None)|(not np.allclose(slow,self.old_slow)):
             wb = 0.0224
             wnu= 0.0006442013903673842
             ns = 0.96824
@@ -288,10 +286,8 @@ class PkLikelihood(Likelihood):
                             extrap_min=-4,extrap_max=3,N=2000,jn=10)
             # and CLASS instance
             self.cc = cc
-            # and update old_sig8, old_hub and old_OmM.
-            self.old_sig8 = sig8
-            self.old_hub  = hub
-            self.old_OmM  = OmM
+            # and update old_slow
+            self.old_slow = slow.copy()
         # Compute the growth rate and work out the A-P scaling.
         ff   = self.cc.scale_independent_growth_factor_f(zfid)
         Hz   = self.cc.Hubble(zfid)*2997.925/hub
