@@ -33,8 +33,8 @@ params:
       max:  0.4
     ref:
       dist:  norm
-      loc:   0.3
-      scale: 0.01
+      loc:   0.30
+      scale: 0.02
     latex: \Omega_m
   H0:
     derived: "lambda Omega_m: 100*(0.09633/Omega_m)**0.3333"
@@ -46,7 +46,7 @@ params:
     ref:
       dist:  norm
       loc:   0.75
-      scale: 0.02
+      scale: 0.03
     latex: \sigma_8
   b1:
     prior:
@@ -55,13 +55,13 @@ params:
       max:  2.0
     ref:
       dist:  norm
-      loc:   1.20
+      loc:   1.35
       scale: 0.05
     latex: b_1
   b2:
     prior:
       dist:  norm
-      loc:   0.
+      loc:   0.0
       scale: 15.
     ref:
       dist:  norm
@@ -71,8 +71,8 @@ params:
   bs:
     prior:
       dist:  norm
-      loc:   0.
-      scale: 5.
+      loc:   0.0
+      scale: 5.0
     ref:
       dist:  norm
       loc:   0.0
@@ -86,7 +86,7 @@ params:
     ref:
       dist:  norm
       loc:   1.0
-      scale: 0.1
+      scale: 5.0
     latex: \alpha_0
   alpha2:
     prior:
@@ -95,8 +95,8 @@ params:
       scale: 50.
     ref:
       dist:  norm
-      loc:   5.0
-      scale: 5.
+      loc:   1.0
+      scale: 5.0
     latex: \alpha_2
 sampler:
   mcmc:
@@ -104,6 +104,7 @@ sampler:
     learn_proposal: true
     output_every: 300s
     measure_speeds: false
+    max_tries: 500
     #drag: true
     oversample_power: 0.4
     proposal_scale: 1.5
