@@ -17,7 +17,7 @@ params:
     ref:
       dist:  norm
       loc:   0.75
-      scale: 0.02
+      scale: 0.03
     latex: \sigma_8
   b1:
     prior:
@@ -26,13 +26,13 @@ params:
       max:  2.0
     ref:
       dist:  norm
-      loc:   1.20
+      loc:   1.30
       scale: 0.05
     latex: b_1
   b2:
     prior:
       dist:  norm
-      loc:   0.
+      loc:   0.0
       scale: 15.
     ref:
       dist:  norm
@@ -42,8 +42,8 @@ params:
   bs:
     prior:
       dist:  norm
-      loc:   0.
-      scale: 5.
+      loc:   0.0
+      scale: 5.0
     ref:
       dist:  norm
       loc:   0.0
@@ -56,7 +56,7 @@ params:
       scale: 50.
     ref:
       dist:  norm
-      loc:   5.0
+      loc:   1.0
       scale: 5.0
     latex: \alpha_0
   alpha2:
@@ -66,7 +66,7 @@ params:
       scale: 50.
     ref:
       dist:  norm
-      loc:   5.0
+      loc:   1.0
       scale: 5.0
     latex: \alpha_2
 sampler:
@@ -74,6 +74,8 @@ sampler:
     #covmat: auto
     learn_proposal: True
     output_every: 300s
+    measure_speeds: false
+    max_tries: 500
     #drag: True
     oversample_power: 0.4
     proposal_scale: 1.5
