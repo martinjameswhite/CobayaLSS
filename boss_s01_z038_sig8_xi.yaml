@@ -17,7 +17,7 @@ params:
     ref:
       dist:  norm
       loc:   0.75
-      scale: 0.025
+      scale: 0.02
     latex: \sigma_8
   b1:
     prior:
@@ -56,8 +56,8 @@ params:
       scale: 50.
     ref:
       dist:  norm
-      loc:   1.0
-      scale: 0.1
+      loc:   5.0
+      scale: 5.0
     latex: \alpha_0
   alpha2:
     prior:
@@ -67,11 +67,11 @@ params:
     ref:
       dist:  norm
       loc:   5.0
-      scale: 5.
+      scale: 5.0
     latex: \alpha_2
 sampler:
   mcmc:
-    covmat: auto
+    #covmat: auto
     learn_proposal: True
     output_every: 300s
     #drag: True
