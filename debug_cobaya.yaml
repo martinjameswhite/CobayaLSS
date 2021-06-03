@@ -71,5 +71,6 @@ sampler:
     override:
       b2:   0.0
       bs:   0.0
+timing: True
 output: chains/debug
 stop_on_error: True
