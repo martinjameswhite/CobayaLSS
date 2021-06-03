@@ -77,7 +77,7 @@ sampler:
     output_every: 300s
     measure_speeds: false
     max_tries: 500
-    #drag: True
+    drag: True
     oversample_power: 0.4
     proposal_scale: 1.5
     Rminus1_stop: 0.005
