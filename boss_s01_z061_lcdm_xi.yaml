@@ -102,6 +102,7 @@ sampler:
   mcmc:
     #covmat: auto
     learn_proposal: true
+    learn_proposal_Rminus1_max: 10.
     output_every: 300s
     measure_speeds: false
     max_tries: 500
