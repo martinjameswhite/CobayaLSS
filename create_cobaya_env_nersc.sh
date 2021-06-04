@@ -25,9 +25,9 @@ python3 -m ipykernel install --user --name cobaya --display-name Cobaya-env
 python3 -m pip install cobaya  # --upgrade
 #
 # and any "cosmo" packages it wants
-cobaya-install cosmo -m /global/cscratch1/sd/mwhite/Cobaya/Packages
+cobaya-install cosmo -p /global/cscratch1/sd/mwhite/Cobaya/Packages
 #
-# Install velocileptors. 
+# Install velocileptors,
 #python3 -m pip install git+https://github.com/sfschen/velocileptors
 # and Anzu if you want.
 #conda install -c conda-forge pyccl chaospy -y
