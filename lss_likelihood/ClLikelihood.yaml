@@ -1,0 +1,57 @@
+mname:  anzu_sig8
+ityp:   lrg
+isamp:  2
+acut:   600
+xcut:   600
+clsfn:  /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s02_cls.txt
+covfn:  /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s02_cov.txt
+wlafn:  /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s02_wla.txt
+wlxfn:  /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s02_wlx.txt
+dndzfn: /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s02_dndz.txt
+#
+params:
+  Omega_m:
+    value: 0.3
+    latex: \Omega_m
+  sig8:
+    prior:
+      dist: uniform
+      min: 0.50
+      max: 0.90
+    latex: \sigma_8
+  b1:
+    prior:
+      dist: uniform
+      min: -0.5
+      max:  2.0
+    latex: b_1
+  b2:
+    prior:
+      dist: norm
+      loc:  0.
+      scale: 10.
+    latex: b_2
+  bs:
+    value: 0.0
+    latex: b_s
+  bn:
+    value: 0.0
+    latex: b_{\nabla}
+  alpha_a:
+    value: 0.0
+    latex: \alpha_a
+  alpha_x:
+    value: 0.0
+    latex: \alpha_\times
+  lgSN:
+    prior:
+      dist:  norm
+      loc:   3.6
+      scale: 0.3
+    latex: lgSN
+  smag:
+    prior:
+      dist: norm
+      loc:  1.
+      scale: 0.15
+    latex: s_{\mu}
