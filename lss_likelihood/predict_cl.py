@@ -7,7 +7,6 @@ import sys
 
 from scipy.integrate   import simps
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
-from scipy.special     import hyp2f1	# For D(z).
 
 # Model the (real-space) power spectrum using LPT.
 from velocileptors.LPT.cleft_fftw import CLEFT
@@ -214,14 +213,6 @@ class AngularPowerSpectra():
         tmp *= 2997.925/(s_ak*self.OmM)**0.5
         return(tmp)
         #
-    def D_of_z(self,zz):
-        """Scale-independent growth factor for flat LCDM."""
-        aa = 1./(1.+zz)
-        rr = self.OmX/self.OmM
-        t1 = hyp2f1(1./3,1,11./6,-aa**3*rr) 
-        t2 = hyp2f1(1./3,1,11./6,-rr)
-        return( aa * t1/t2 )
-        #
     def E_of_z(self,zz):
         """The dimensionless Hubble parameter at zz."""
         Ez = (self.OmM*(1+zz)**3 + self.OmX)**0.5
@@ -248,16 +239,13 @@ class AngularPowerSpectra():
         Cshot = self.fchi**2/self.chival**2
         Cshot = simps(Cshot,x=self.chival)
         return(Cshot)
-    def set_pk(self,klin,plin,halofit=None,at_zeff=False,pars=None):
+    def set_pk(self,klin,plin,halofit=None,pars=None):
         """Sets the linear theory power spectrum or interpolator.
             klin: A numpy array (Nk) containing kk [Mpc/h units].
             plin: A numpy array (Nk) containing Plinear [Mpc/h units].
             halofit: A numpy array (Nk) containing HaloFit [Mpc/h units].
                      If this is None, then pure LPT is used, otherwise
                      a hybrid method is used.
-            at_zeff: If True, Plinear is taken to be P(k,zeff) otherwise
-                     it is assumed to be P(k,z=0) and scaled to z_eff
-                     (this raises an error if HaloFit is not None).
             If both klin and plin are None, then Anzu is used.
             For Anzu if pars is None use a fixed cosmology, else change
             the cosmology."""
@@ -268,15 +256,9 @@ class AngularPowerSpectra():
                 else:
                     self.pofk = AnzuPowerSpectra(self.zeff,pars=pars)
             else: # Use LPT.
-                if at_zeff:
-                    self.pofk = LPTPowerSpectra(klin,plin)
-                else:
-                    self.pofk = LPTPowerSpectra(klin,plin*self.Dz**2)
+                self.pofk = LPTPowerSpectra(klin,plin)
         else: # Use Hybrid
-            if at_zeff:
-                self.pofk = HalobridPowerSpectra(klin,plin,halofit)
-            else:
-                raise RuntimeError("Do not know how to interpret HaloFit.")
+            self.pofk = HalobridPowerSpectra(klin,plin,halofit)
         #
     def __init__(self,OmM,dndz,Nchi=101,Nz=251):
         """Set up the class.
@@ -310,8 +292,6 @@ class AngularPowerSpectra():
         # Compute the effective redshift.
         self.zeff = simps(zval*self.fchi**2/self.chival**2,x=self.chival)
         self.zeff/= simps(     self.fchi**2/self.chival**2,x=self.chival)
-        # Work out the growth factor to z_eff.
-        self.Dz   = self.D_of_z(self.zeff)
         #
     def __call__(self,pk_pars,smag=0.4,Nell=50,Lmax=1001):
         """Computes C_l^{gg} and C_l^{kg}."""

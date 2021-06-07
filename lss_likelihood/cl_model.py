@@ -214,7 +214,7 @@ class Model():
                 ki = np.logspace(-3.0,1.5,750)
                 pi = np.array([self.cc.pk_cb_lin(k*hh,zz)*hh**3*Af for k in ki])
                 # Only need to overwrite P(k), distances, kernels, etc. unchanged.
-                self.aps.set_pk(ki,pi,at_zeff=True)
+                self.aps.set_pk(ki,pi)
                 self.oldsig8 = sig8
             # Now use the PT model to compute predictions.
             ell,clgg,clgk = self.aps(pars,smag,Lmax=1251)
@@ -243,7 +243,7 @@ class Model():
             pi = np.array([cc.pk_cb_lin(k*hub,zz)*hub**3 for k in ki])
             hf = np.array([cc.pk_cb(k*hub,zz)*hub**3 for k in ki])
             # Only need to overwrite P(k).  Distances, kernels, etc. unchanged.
-            self.aps.set_pk(ki,pi,hf,at_zeff=True)
+            self.aps.set_pk(ki,pi,hf)
             # Now use the model to compute predictions.
             ell,clgg,clgk = self.aps(pars,smag,Lmax=1251)
             tt = np.array([ell,clgg,clgk]).T
@@ -298,7 +298,7 @@ class Model():
                                for k in ki])
                 # Need to remake APS class.
                 self.aps = T.AngularPowerSpectra(OmM,self.dndz)
-                self.aps.set_pk(ki,pi,at_zeff=True)
+                self.aps.set_pk(ki,pi)
                 # Update oldhub, etc.
                 self.oldOmM  = OmM
                 self.oldhub  = hub
@@ -363,11 +363,11 @@ class Model():
             ki  = np.logspace(-3.0,1.5,1024)
             pi  = np.array([cc.pk_cb_lin(k*hub,self.zeff)*hub**3 for k in ki])
             hf  = np.array([cc.pk_cb(k*hub,self.zeff)*hub**3 for k in ki])
-            self.aps.set_pk(ki,pi,hf,at_zeff=True)
+            self.aps.set_pk(ki,pi,hf)
         else:
             # For fits involving the same power spectrum pre-load the PT class
             hub = fid_class.h()
             ki  = np.logspace(-3.0,1.5,1024)
             pi  = np.array([cc.pk_cb_lin(k*hub,self.zeff)*hub**3 for k in ki])
-            self.aps.set_pk(ki,pi,halofit=None,at_zeff=True)
+            self.aps.set_pk(ki,pi,halofit=None)
         #
