@@ -51,13 +51,11 @@ class ClLikelihood(Likelihood):
                 'z_reio': 7.0, 'omega_b':0.022, 'omega_cdm':0.119})
         cc.compute()
         self.OmM     = cc.Omega0_m()
+        self.omh3    = 0.09633# For setting h if not otherwise given.
         self.sig8_fid= cc.sigma8()
         # Set up a model instance and use this to get z_eff.
         self.model= M.Model(self.mname,self.dndz,cc)
         self.zeff = self.model.aps.zeff
-        # Work out some useful fiducial values:
-        self.Hz_fid  = cc.Hubble(self.zeff)*2997.925/hub
-        self.chiz_fid= cc.angular_distance(self.zeff)*(1+self.zeff)*hub
     def logp(self,**params_values):
         """
         Given a dictionary of nuisance parameter values params_values
@@ -67,6 +65,7 @@ class ClLikelihood(Likelihood):
         #cls = self.provider.get_Cl(ell_factor=True)
         OmM  = params_values['Omega_m']
         if OmM<=0: OmM=0.3
+        hub  = params_values.get('hub',(self.omh3/OmM)**0.3333)
         sig8 = params_values['sig8']
         b1   = params_values['b1']
         b2   = params_values['b2']
@@ -77,17 +76,12 @@ class ClLikelihood(Likelihood):
         sn   = params_values['lgSN'];  sn = 10.0**sn
         smag = params_values['smag']
         #
-        pars = []
-        if self.model.name.startswith("clpt_sig8"):
-            pars = [sig8,b1,b2,alpA,alpX,sn,smag]
-        elif self.model.name.startswith("clpt_lcdm"):
-            pars = [OmM,sig8,b1,b2,alpA,alpX,sn,smag]
-        elif self.model.name.startswith("anzu_sig8"):
-            pars = [sig8,b1,b2,bs,bn,sn,smag]
-        elif self.model.name.startswith("anzu_lcdm"):
-            pars = [OmM,sig8,b1,b2,bs,bn,sn,smag]
+        # Set the fast and slow parameters.
+        fast = [b1,b2,bs,bn,alpA,alpX,sn,smag]
+        slow = [OmM,hub,sig8]
+        #
         # Get the "theory".
-        tt = self.model(pars)
+        tt = self.model(fast,slow)
         # Now compute chi^2.
         thy  = self.observe(tt)
         chi2 = np.dot(self.dd-thy,np.dot(self.cinv,self.dd-thy))
