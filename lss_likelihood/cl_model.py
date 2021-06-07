@@ -123,23 +123,8 @@ class Model():
         self.cc   = fid_class # Keep a copy.
         cc        = fid_class # A shorter name.
         # Use the angular power spectrum class to get z_eff, this assumes
-        # a "fiducial" cosmology but we hold it fixed after this.
+        # a "fiducial" cosmology but we hold z_eff fixed after this.
         self.aps      = T.AngularPowerSpectra(self.OmM,dndz)
         self.zeff     = self.aps.zeff
         self.old_slow = None
-        if modelname.startswith("anzu"):
-            self.aps.set_pk(None,None,None,None)
-        elif modelname.startswith("hybr"):
-            # For fits involving the same power spectrum pre-load the PT class
-            hub = fid_class.h()
-            ki  = np.logspace(-3.0,1.5,1024)
-            pi  = np.array([cc.pk_cb_lin(k*hub,self.zeff)*hub**3 for k in ki])
-            hf  = np.array([cc.pk_cb(k*hub,self.zeff)*hub**3 for k in ki])
-            self.aps.set_pk(ki,pi,hf)
-        else:
-            # For fits involving the same power spectrum pre-load the PT class
-            hub = fid_class.h()
-            ki  = np.logspace(-3.0,1.5,1024)
-            pi  = np.array([cc.pk_cb_lin(k*hub,self.zeff)*hub**3 for k in ki])
-            self.aps.set_pk(ki,pi,halofit=None)
         #
