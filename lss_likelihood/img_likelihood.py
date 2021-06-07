@@ -86,11 +86,8 @@ class ClLikelihood(Likelihood):
             pars = [sig8,b1,b2,bs,bn,sn,smag]
         elif self.model.name.startswith("anzu_lcdm"):
             pars = [OmM,sig8,b1,b2,bs,bn,sn,smag]
-        #
-        if self.model.paramsInvalid(pars):
-            return(np.array([-1e4-10*np.sum(pars**2)]))
-        else:
-            tt = self.model(pars)
+        # Get the "theory".
+        tt = self.model(pars)
         # Now compute chi^2.
         thy  = self.observe(tt)
         chi2 = np.dot(self.dd-thy,np.dot(self.cinv,self.dd-thy))
