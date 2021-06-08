@@ -50,9 +50,8 @@ class ClLikelihood(Likelihood):
                 'N_ur':2.0328, 'N_ncdm':1,'m_ncdm':0.06,\
                 'z_reio': 7.0, 'omega_b':0.022, 'omega_cdm':0.119})
         cc.compute()
-        self.OmM     = cc.Omega0_m()
-        self.omh3    = 0.09633# For setting h if not otherwise given.
-        self.sig8_fid= cc.sigma8()
+        self.OmM  = cc.Omega0_m()
+        self.omh3 = 0.09633# For setting h if not otherwise given.
         # Set up a model instance and use this to get z_eff.
         self.model= M.Model(self.mname,self.dndz,cc)
         self.zeff = self.model.aps.zeff
