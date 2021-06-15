@@ -1,0 +1,9 @@
+
+kmin: 1e-3
+kmax: 2.0
+nk: 1000
+zmin: 0.0
+zmax: 0.7
+nz: 40
+z : []
+kecleft : True

@@ -1,0 +1,28 @@
+zfid:  0.5924
+#datafile: /Users/jderose/projects/lakelag/unit_mean_001_redmagic_highdens_46_z0.5924.txt
+datafile: /global/homes/j/jderose/notebooks/lpt_emulator/unit_mean_001_redmagic_highdens_46_z0.5924.txt
+dataset: ['p_gg', 'p_gm']
+kmax: 0.25
+kmin: 0.001
+stop_at_error: true
+use_heft : False
+
+params:
+  b1:
+    prior:
+      dist: uniform
+      min: -0.5
+      max:  2.0
+    latex: b_1
+  b2:
+    value: 0.0
+    latex: b_2
+  bs:
+    value: 0.0
+    latex: b_s
+  sn:
+    value: 0.0
+    latex: SN_0
+  bk: 
+    value: 0.0
+    latex: b_k
