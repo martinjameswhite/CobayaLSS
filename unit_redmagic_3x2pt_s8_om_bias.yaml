@@ -8,7 +8,7 @@ theory:
         theta_H0_range:
         - 20
         - 100
-    theory_heft.HEFT.PTCalculator: null
+    theory_heft.HEFT.HEFTCalculator: null
 
 likelihood:
   lss_likelihood.pk_likelihood.SimPkLikelihood :
