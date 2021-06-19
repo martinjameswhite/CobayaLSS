@@ -22,14 +22,6 @@ class XiLikelihood(Likelihood):
     def initialize(self):
         """Sets up the class."""
         self.loadData()
-        # Set up a fiducial cosmology for distances.
-        cc = Class()
-        cc.set({'output':'mPk','P_k_max_h/Mpc':25.,'z_pk':self.zfid,\
-                'A_s':2.11e-9, 'n_s':0.96824, 'h':0.6760,\
-                'N_ur':2.0328, 'N_ncdm':1,'m_ncdm':0.06,\
-                'z_reio': 7.0, 'omega_b':0.0224, 'omega_cdm':0.119})
-        cc.compute()
-        self.cc      = cc
         self.omh3    = 0.09633# For setting h if not otherwise given.
         self.old_slow= None
     def logp(self,**params_values):
@@ -41,7 +33,7 @@ class XiLikelihood(Likelihood):
         #
         #H0_theory = self.provider.get_param("H0")
         #cls = self.provider.get_Cl(ell_factor=True)
-        OmM  = params_values.get('Omega_m',self.cc.Omega_m())
+        OmM  = params_values.get('Omega_m',0.3)
         if OmM<=0: OmM=0.3
         hub  = params_values.get('hub',(self.omh3/OmM)**0.3333)
         sig8 = params_values['sig8']
@@ -103,6 +95,8 @@ class XiLikelihood(Likelihood):
                     'N_ur':2.0328, 'N_ncdm':1,'m_ncdm':0.06,\
                     'z_reio': 7.0, 'omega_b':wb, 'omega_cdm':wc})
             cc.compute()
+            # Save the CLASS instance
+            self.cc = cc
             # Compute the growth rate.
             ff = cc.scale_independent_growth_factor_f(zfid)
             # and work out the A-P scaling to the fiducial cosmology.
@@ -117,8 +111,6 @@ class XiLikelihood(Likelihood):
             self.modPT = LPT_RSD(ki,pi,kIR=0.2,one_loop=True,shear=True)
             self.modPT.make_pltable(ff,apar=apar,aperp=aperp,\
                                     kmin=1e-3,kmax=0.8,nk=100,nmax=5)
-            # and CLASS instance
-            self.cc = cc
             # and update old_slow
             self.old_slow = slow.copy()
         #
@@ -185,14 +177,6 @@ class PkLikelihood(Likelihood):
     def initialize(self):
         """Sets up the class."""
         self.loadData()
-        # Set up a fiducial cosmology for distances.
-        cc = Class()
-        cc.set({'output':'mPk','P_k_max_h/Mpc':25.,'z_pk':self.zfid,\
-                'A_s':2.11e-9, 'n_s':0.96824, 'h':0.6760,\
-                'N_ur':2.0328, 'N_ncdm':1,'m_ncdm':0.06,\
-                'z_reio': 7.0, 'omega_b':0.0224, 'omega_cdm':0.119})
-        cc.compute()
-        self.cc      = cc
         self.omh3    = 0.09633# For setting h if not otherwise given.
         self.old_slow= None
         #
@@ -205,7 +189,7 @@ class PkLikelihood(Likelihood):
         #
         #H0_theory = self.provider.get_param("H0")
         #cls = self.provider.get_Cl(ell_factor=True)
-        OmM  = params_values.get('Omega_m',self.cc.Omega_m())
+        OmM  = params_values.get('Omega_m',0.3)
         if OmM<=0: OmM=0.3
         hub  = params_values.get('hub',(self.omh3/OmM)**0.3333)
         sig8 = params_values['sig8']
@@ -279,6 +263,8 @@ class PkLikelihood(Likelihood):
                     'N_ur':2.0328, 'N_ncdm':1,'m_ncdm':0.06,\
                     'z_reio': 7.0, 'omega_b':wb, 'omega_cdm':wc})
             cc.compute()
+            # Save the CLASS instance
+            self.cc = cc
             # Need to rescale P(k) to match requested sig8 value.
             Af = (sig8/cc.sigma8())**2
             ki = np.logspace(-3.0,1.5,750)
@@ -289,8 +275,6 @@ class PkLikelihood(Likelihood):
                             import_wisdom=False,\
                             kmin=1e-4,kmax=0.5,nk=200,cutoff=10,\
                             extrap_min=-4,extrap_max=3,N=2000,jn=10)
-            # and CLASS instance
-            self.cc = cc
             # and update old_slow
             self.old_slow = slow.copy()
         # Compute the growth rate and work out the A-P scaling.
