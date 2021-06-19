@@ -1,10 +1,11 @@
 likelihood:
-  lss_likelihood.XiLikelihood:
+  lss_likelihood.PkLikelihood:
     zfid:  0.61
     mcut:  25.0
     qcut:  25.0
-    datfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.xis
-    covfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.xiscov
+    datfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.pks
+    covfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.cov
+    winfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.win
     chiz_fid: 1559.56  # Mpc/h.
     Hz_fid:  1.40856  # Relative to H(0).
 params:
@@ -19,7 +20,7 @@ params:
     ref:
       dist:  norm
       loc:   0.75
-      scale: 0.03
+      scale: 0.025
     latex: \sigma_8
   b1:
     prior:
@@ -28,13 +29,13 @@ params:
       max:  2.0
     ref:
       dist:  norm
-      loc:   1.30
+      loc:   1.20
       scale: 0.05
     latex: b_1
   b2:
     prior:
       dist:  norm
-      loc:   0.0
+      loc:   0.
       scale: 15.
     ref:
       dist:  norm
@@ -44,8 +45,8 @@ params:
   bs:
     prior:
       dist:  norm
-      loc:   0.0
-      scale: 5.0
+      loc:   0.
+      scale: 5.
     ref:
       dist:  norm
       loc:   0.0
@@ -59,7 +60,7 @@ params:
     ref:
       dist:  norm
       loc:   1.0
-      scale: 5.0
+      scale: 0.1
     latex: \alpha_0
   alpha2:
     prior:
@@ -68,23 +69,40 @@ params:
       scale: 50.
     ref:
       dist:  norm
-      loc:   1.0
-      scale: 5.0
+      loc:   5.0
+      scale: 5.
     latex: \alpha_2
+  SN0:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 5e3
+    ref:
+      dist:  norm
+      loc:   0.0
+      scale: 100.
+    latex: SN_0
+  SN2:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 5e5
+    ref:
+      dist:  norm
+      loc:   0.0
+      scale: 100.
+    latex: SN_2
 sampler:
   mcmc:
-    #covmat: auto
+    covmat: auto
     learn_proposal: True
-    learn_proposal_Rminus1_max: 10.
-    output_every: 300s
-    measure_speeds: false
-    max_tries: 500
-    drag: True
+    output_every: 30s
+    #drag: True
     oversample_power: 0.4
     proposal_scale: 1.5
     Rminus1_stop: 0.005
     blocking:
       - [1, [sig8]]
-      - [3, [b1,b2,bs,alpha0,alpha2]]
-output: chains/boss_s01_z061_sig8_xi
+      - [5, [b1,b2,bs,alpha0,alpha2,SN0,SN2]]
+output: chains/boss_s01_z061_sig8_pk
 stop_on_error: True

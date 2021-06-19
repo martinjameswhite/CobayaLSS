@@ -16,6 +16,8 @@ class XiLikelihood(Likelihood):
     zfid:  float
     mcut:  float
     qcut:  float
+    chiz_fid: float
+    Hz_fid: float
     #
     def initialize(self):
         """Sets up the class."""
@@ -28,8 +30,6 @@ class XiLikelihood(Likelihood):
                 'z_reio': 7.0, 'omega_b':0.0224, 'omega_cdm':0.119})
         cc.compute()
         self.cc      = cc
-        self.Hz_fid  = cc.Hubble(self.zfid)*2997.925/0.6760
-        self.chiz_fid= cc.angular_distance(self.zfid)*(1+self.zfid)*0.6760
         self.omh3    = 0.09633# For setting h if not otherwise given.
         self.old_slow= None
     def logp(self,**params_values):
@@ -179,6 +179,8 @@ class PkLikelihood(Likelihood):
     zfid:  float
     mcut:  float
     qcut:  float
+    chiz_fid: float
+    Hz_fid: float
     #
     def initialize(self):
         """Sets up the class."""
@@ -191,8 +193,6 @@ class PkLikelihood(Likelihood):
                 'z_reio': 7.0, 'omega_b':0.0224, 'omega_cdm':0.119})
         cc.compute()
         self.cc      = cc
-        self.Hz_fid  = cc.Hubble(self.zfid)*2997.925/0.6760
-        self.chiz_fid= cc.angular_distance(self.zfid)*(1+self.zfid)*0.6760
         self.omh3    = 0.09633# For setting h if not otherwise given.
         self.old_slow= None
         #
