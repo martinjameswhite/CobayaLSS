@@ -302,8 +302,8 @@ class PkLikelihood(Likelihood):
         #
     def observe(self,tt):
         """Apply the window function matrix to get the binned prediction."""
-        # Have to stack ell=0, 2 & 4 in bins of 0.02h/Mpc from 0.01-0.49h/Mpc.
-        kv  = 0.01 + 0.02*np.arange(25)
+        # Have to stack ell=0, 2 & 4 in bins of 0.001h/Mpc from 0-0.4h/Mpc.
+        kv  = np.linspace(0.0,0.4,400,endpoint=False) + 0.0005
         thy =                     Spline(tt[:,0],tt[:,1])(kv)
         thy = np.concatenate([thy,Spline(tt[:,0],tt[:,2])(kv)])
         thy = np.concatenate([thy,Spline(tt[:,0],tt[:,3])(kv)])
