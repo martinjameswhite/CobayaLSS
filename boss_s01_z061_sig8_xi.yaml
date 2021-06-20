@@ -118,4 +118,5 @@ sampler:
       - [1, [logA]]
       - [3, [b1,b2,bs,alpha0,alpha2]]
 output: chains/boss_s01_z061_sig8_xi
+timing: True
 stop_on_error: True

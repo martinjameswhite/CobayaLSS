@@ -116,4 +116,5 @@ sampler:
       - [ 1, [Omega_m,sig8]]
       - [10, [b1,b2,bs,alpha0,alpha2]]
 output: chains/boss_s01_z061_lcdm_xi
+timing: True
 stop_on_error: true
