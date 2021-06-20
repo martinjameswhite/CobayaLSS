@@ -1,3 +1,15 @@
+theory:
+  camb:
+    extra_args:
+      bbn_predictor: PArthENoPE_880.2_standard.dat
+      lens_potential_accuracy: 1
+      num_massive_neutrinos: 1
+      nnu: 3.046
+      mnu: 0.06
+      tau: 0.07
+      theta_H0_range:
+      - 20
+      - 100
 likelihood:
   lss_likelihood.XiLikelihood:
     zfid:  0.61
@@ -6,17 +18,38 @@ likelihood:
     datfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.xis
     covfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.xiscov
     chiz_fid: 1559.56  # Mpc/h.
-    Hz_fid:  1.40856   # Relative to H(0).
+    Hz_fid:   1.40856  # Relative to H(0).
 params:
-  sig8:
+  logA:
+    value: 3.05
+    drop:  True
+  ns:
+    value: 0.9667
+  H0:
+    value: 67.74
+  ombh2:
+    value: 0.022
+  omnuh2:
+    value: 0.0006442
+  omch2:
     prior:
       dist: uniform
-      min:  0.5
-      max:  0.9
+      min:  0.11
+      max:  0.13
     ref:
       dist:  norm
-      loc:   0.75
-      scale: 0.025
+      loc:   0.119
+      scale: 0.001
+  As:
+    value: 'lambda logA: 1e-10*np.exp(logA)'
+    latex: A_\mathrm{s}
+  omegamh2:
+    derived: 'lambda omch2,ombh2,omnuh2: omch2+ombh2+omnuh2'
+    latex: \Omega_\mathrm{m} h^2
+  omegam:
+    derived: 'lambda omegamh2,H0: omegamh2*(100/H0)**2'
+    latex: \Omega_\mathrm{m}
+  sigma8:
     latex: \sigma_8
   b1:
     prior:
