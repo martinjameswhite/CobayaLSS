@@ -3,7 +3,6 @@ import numpy as np
 from cobaya.likelihood import Likelihood
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 
-from classy import Class
 from velocileptors.LPT.lpt_rsd_fftw          import LPT_RSD
 from velocileptors.LPT.moment_expansion_fftw import MomentExpansion
 
@@ -24,19 +23,24 @@ class XiLikelihood(Likelihood):
         self.loadData()
         self.omh3    = 0.09633# For setting h if not otherwise given.
         self.old_slow= None
+    def get_requirements(self):
+        zg  = np.linspace(0,self.zfid,8,endpoint=True)
+        req = {\
+                'Pk_interpolator': {'k_max': 30,'z': zg,\
+                                   'nonlinear': False},\
+               'sigma8_z': {'z': [0.0,self.zfid]},\
+               'fsigma8':  {'z': [self.zfid]},\
+               'Hubble':   {'z': [0.0,self.zfid]},\
+               'comoving_radial_distance': {'z': [self.zfid]},\
+               'omegam': None\
+              }
+        return(req)
     def logp(self,**params_values):
         """Given a dictionary of nuisance parameter values params_values
         return a log-likelihood."""
-        # Currently ns, omegab, etc. are hard-wired.  We could read
-        # these from the params_values as well if we wanted and pass
-        # them through to predict as e.g. self.ns.
-        #
-        #H0_theory = self.provider.get_param("H0")
-        #cls = self.provider.get_Cl(ell_factor=True)
-        OmM  = params_values.get('Omega_m',0.3)
-        if OmM<=0: OmM=0.3
-        hub  = params_values.get('hub',(self.omh3/OmM)**0.3333)
-        sig8 = params_values['sig8']
+        hub  = self.provider.get_Hubble(0)[0]/100.
+        sig8 = self.provider.get_sigma8_z(0)[0]
+        OmM  = params_values['omegam']
         b1   = params_values['b1']
         b2   = params_values['b2']
         bs   = params_values['bs']
@@ -80,33 +84,24 @@ class XiLikelihood(Likelihood):
         cterm= [alpha0,alpha2,0,0]
         stoch= [0,0,0]
         bpars= bias + cterm + stoch
-        #
+        # Make shorter names.
+        pp   = self.provider
         zfid = self.zfid
         if self.old_slow is None:
             self.old_slow = np.array(slow) + 1
         if not np.allclose(slow,self.old_slow):
-            wb = 0.0224
-            wnu= 0.0006442013903673842
-            ns = 0.96824
-            wc = OmM*hub**2 - wb - wnu
-            cc = Class()
-            cc.set({'output':'mPk','P_k_max_h/Mpc':100.,'z_pk':zfid,\
-                    'A_s':2e-9, 'n_s':ns, 'h':hub,\
-                    'N_ur':2.0328, 'N_ncdm':1,'m_ncdm':0.06,\
-                    'z_reio': 7.0, 'omega_b':wb, 'omega_cdm':wc})
-            cc.compute()
-            # Save the CLASS instance
-            self.cc = cc
-            # Compute the growth rate.
-            ff = cc.scale_independent_growth_factor_f(zfid)
-            # and work out the A-P scaling to the fiducial cosmology.
-            Hz   = self.cc.Hubble(zfid)*2997.925/hub
-            chiz = self.cc.angular_distance(zfid)*(1+zfid)*hub
+            # Get cosmological parameters
+            s8   = pp.get_sigma8_z(self.zfid)[0]
+            fs8  = pp.get_fsigma8(self.zfid)[0]
+            ff   = fs8 / s8
+            # and Plin.
+            ki   = np.logspace(-3.0,1.5,750)
+            pi   = pp.get_Pk_interpolator(nonlinear=False)
+            pi   = pi.P(self.zfid,ki*hub)*hub**3
+            # Work out the A-P scaling to the fiducial cosmology.
+            Hz   = pp.get_Hubble(self.zfid)[0]/pp.get_Hubble(0)[0]
+            chiz = pp.get_comoving_radial_distance(self.zfid)[0]*hub
             apar,aperp = self.Hz_fid/Hz,chiz/self.chiz_fid
-            # Need to rescale P(k) to match requested sig8 value.
-            Af = (sig8/cc.sigma8())**2
-            ki = np.logspace(-3.0,1.5,750)
-            pi = np.array([cc.pk_cb(k*hub,zfid)*hub**3*Af for k in ki])
             # Now generate and save the PT model
             self.modPT = LPT_RSD(ki,pi,kIR=0.2,one_loop=True,shear=True)
             self.modPT.make_pltable(ff,apar=apar,aperp=aperp,\
@@ -180,19 +175,24 @@ class PkLikelihood(Likelihood):
         self.omh3    = 0.09633# For setting h if not otherwise given.
         self.old_slow= None
         #
+    def get_requirements(self):
+        zg  = np.linspace(0,self.zfid,8,endpoint=True)
+        req = {\
+                'Pk_interpolator': {'k_max': 30,'z': zg,\
+                                   'nonlinear': False},\
+               'sigma8_z': {'z': [0.0,self.zfid]},\
+               'fsigma8':  {'z': [self.zfid]},\
+               'Hubble':   {'z': [0.0,self.zfid]},\
+               'comoving_radial_distance': {'z': [self.zfid]},\
+               'omegam': None\
+              }
+        return(req)
     def logp(self,**params_values):
         """Given a dictionary of nuisance parameter values params_values
         return a log-likelihood."""
-        # Currently ns, omegab, etc. are hard-wired.  We could read
-        # these from the params_values as well if we wanted and pass
-        # them through to predict as e.g. self.ns.
-        #
-        #H0_theory = self.provider.get_param("H0")
-        #cls = self.provider.get_Cl(ell_factor=True)
-        OmM  = params_values.get('Omega_m',0.3)
-        if OmM<=0: OmM=0.3
-        hub  = params_values.get('hub',(self.omh3/OmM)**0.3333)
-        sig8 = params_values['sig8']
+        hub  = self.provider.get_Hubble(0)[0]/100.
+        sig8 = self.provider.get_sigma8_z(0)[0]
+        OmM  = params_values['omegam']
         b1   = params_values['b1']
         b2   = params_values['b2']
         bs   = params_values['bs']
@@ -248,27 +248,17 @@ class PkLikelihood(Likelihood):
         cterms = [alpha0,alpha2,0] # Set alpha4=0 if no hexadecapole
         stoch  = [sn0,sn2]
         bpars  = biases + cterms + stoch
-        #
+        # Make shorter names.
+        pp   = self.provider 
         zfid = self.zfid
+        #
         if self.old_slow is None:
             self.old_slow = np.array(slow) + 1
         if not np.allclose(slow,self.old_slow):
-            wb = 0.0224
-            wnu= 0.0006442013903673842
-            ns = 0.96824
-            wc = OmM*hub**2 - wb - wnu
-            cc = Class()
-            cc.set({'output':'mPk','P_k_max_h/Mpc':100.,'z_pk':zfid,\
-                    'A_s':2e-9, 'n_s':ns, 'h':hub,\
-                    'N_ur':2.0328, 'N_ncdm':1,'m_ncdm':0.06,\
-                    'z_reio': 7.0, 'omega_b':wb, 'omega_cdm':wc})
-            cc.compute()
-            # Save the CLASS instance
-            self.cc = cc
-            # Need to rescale P(k) to match requested sig8 value.
-            Af = (sig8/cc.sigma8())**2
+            # Get Plin.
             ki = np.logspace(-3.0,1.5,750)
-            pi = np.array([cc.pk_cb(k*hub,zfid)*hub**3*Af for k in ki])
+            pi = pp.get_Pk_interpolator(nonlinear=False)
+            pi = pi.P(self.zfid,ki*hub)*hub**3
             # Now set up the PT model.
             self.modPT = MomentExpansion(ki,pi,beyond_gauss=False,\
                             one_loop=True,shear=True,\
@@ -278,9 +268,12 @@ class PkLikelihood(Likelihood):
             # and update old_slow
             self.old_slow = slow.copy()
         # Compute the growth rate and work out the A-P scaling.
-        ff   = self.cc.scale_independent_growth_factor_f(zfid)
-        Hz   = self.cc.Hubble(zfid)*2997.925/hub
-        chiz = self.cc.angular_distance(zfid)*(1+zfid)*hub
+        s8   = pp.get_sigma8_z(self.zfid)[0]
+        fs8  = pp.get_fsigma8(self.zfid)[0]
+        ff   = fs8 / s8
+        # Work out the A-P scaling to the fiducial cosmology.
+        Hz   = pp.get_Hubble(self.zfid)[0]/pp.get_Hubble(0)[0]
+        chiz = pp.get_comoving_radial_distance(self.zfid)[0]*hub
         apar,aperp = self.Hz_fid/Hz,chiz/self.chiz_fid
         # Call the PT model to get P_ell -- we'll grid it onto the
         # appropriate binning for the window function in observe.
@@ -294,8 +287,8 @@ class PkLikelihood(Likelihood):
         #
     def observe(self,tt):
         """Apply the window function matrix to get the binned prediction."""
-        # Have to stack ell=0, 2 & 4 in bins of 0.02h/Mpc from 0.01-0.49h/Mpc.
-        kv  = 0.01 + 0.02*np.arange(25)
+        # Have to stack ell=0, 2 & 4 in bins of 0.001h/Mpc from 0-0.4h/Mpc.
+        kv  = np.linspace(0.0,0.4,400,endpoint=False) + 0.0005
         thy =                     Spline(tt[:,0],tt[:,1])(kv)
         thy = np.concatenate([thy,Spline(tt[:,0],tt[:,2])(kv)])
         thy = np.concatenate([thy,Spline(tt[:,0],tt[:,3])(kv)])
