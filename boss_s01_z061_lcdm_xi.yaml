@@ -1,10 +1,15 @@
-#theory:
-#  classy:
-#    extra_args:
-#      N_ncdm:  1
-#      N_ur:    2.0328
-#      m_ncdm:  0.06
-#      z_reio:  7.0
+theory:
+  camb:
+    extra_args:
+      bbn_predictor: PArthENoPE_880.2_standard.dat
+      lens_potential_accuracy: 1
+      num_massive_neutrinos: 1
+      nnu: 3.046
+      mnu: 0.06
+      tau: 0.07
+      theta_H0_range:
+      - 20
+      - 100
 likelihood:
   lss_likelihood.XiLikelihood:
     zfid:  0.61
@@ -13,42 +18,45 @@ likelihood:
     datfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.xis
     covfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.xiscov
     chiz_fid: 1559.56  # Mpc/h.
-    Hz_fid:  1.40856  # Relative to H(0).
-#  sn.pantheon: null
+    Hz_fid:   1.40856  # Relative to H(0).
 params:
-#  omega_b: # Put these here so classy is happy.
-#    value: 0.0224
-#    latex: \omega_b
-#  n_s:
-#    value: 0.96824
-#    latex: n_\mathrm{s}
-#  omega_cdm:
-#    derived: "lambda Omega_m: Omega_m*(0.09633/Omega_m)**0.667-0.0224-0.0006442013903673842"
-#  omegabh2:
-#    derived: "lambda omega_b: omega_b"
-#  omegach2:
-#    derived: "lambda omega_cdm: omega_cdm"
-  Omega_m:
+  logA:
     prior:
-      dist: uniform
-      min:  0.2
-      max:  0.4
+      min: 1.61
+      max: 3.91
     ref:
-      dist:  norm
-      loc:   0.30
-      scale: 0.02
-    latex: \Omega_m
+      dist: norm
+      loc: 3.05
+      scale: 0.001
+    proposal: 0.001
+    drop: true
+    latex: \log(10^{10} A_\mathrm{s})
+  ns:
+    value: 0.9667
+  ombh2:
+    value: 0.022
+  omnuh2:
+    value: 0.0006442
+  omch2:
+    prior:
+      min: 0.10
+      max: 0.14
+    ref:
+      dist: norm
+      loc:   0.119
+      scale: 0.001
+  As:
+    value: 'lambda logA: 1e-10*np.exp(logA)'
+    latex: A_\mathrm{s}
+  omegamh2:
+    derived: 'lambda omch2,ombh2,omnuh2: omch2+ombh2+omnuh2'
+    latex: \Omega_\mathrm{m} h^2
+  omegam:
+    derived: 'lambda omegamh2,H0: omegamh2*(100/H0)**2'
+    latex: \Omega_\mathrm{m}
   H0:
-    derived: "lambda Omega_m: 100*(0.09633/Omega_m)**0.3333"
-  sig8:
-    prior:
-      dist: uniform
-      min:  0.5
-      max:  0.9
-    ref:
-      dist:  norm
-      loc:   0.75
-      scale: 0.03
+    derived: 'lambda omegam: 100*(0.09633/omegam)**0.33333'
+  sigma8:
     latex: \sigma_8
   b1:
     prior:
@@ -113,7 +121,7 @@ sampler:
     proposal_scale: 1.5
     Rminus1_stop: 0.005
     blocking:
-      - [ 1, [Omega_m,sig8]]
+      - [ 1, [logA,omch2]]
       - [10, [b1,b2,bs,alpha0,alpha2]]
 output: chains/boss_s01_z061_lcdm_xi
 timing: True
