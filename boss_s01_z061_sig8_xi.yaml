@@ -22,14 +22,15 @@ likelihood:
 params:
   logA:
     prior:
-      dist: uniform
-      min:  0.11
-      max:  0.13
+      min: 1.61
+      max: 3.91
     ref:
-      dist:  norm
-      loc:   0.119
+      dist: norm
+      loc: 3.05
       scale: 0.001
-    drop:  True
+    proposal: 0.001
+    drop: true
+    latex: \log(10^{10} A_\mathrm{s})
   ns:
     value: 0.9667
   H0:
