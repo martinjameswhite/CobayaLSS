@@ -57,7 +57,8 @@ class SimPkLikelihood(Likelihood):
     def get_requirements(self):
 
         if self.heft:
-            return {'heft_spectrum_interpolator': None}
+            return {'heft_spectrum_interpolator': None,
+                    'heft_spectrum_grid': None}
         else:
             return {'eft_spectrum_interpolator': None}
 
@@ -133,6 +134,7 @@ class SimPkLikelihood(Likelihood):
                 model.append(spectra[:, 0])
 
         model = np.hstack(model)
+        self.model_pred = model
 
         chi2 = np.dot(self.datavec - model,
                       np.dot(self.cinv, self.datavec - model))

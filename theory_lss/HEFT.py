@@ -48,6 +48,8 @@ class HEFTCalculator(Theory):
                              self.nk)
 
         self.nspec = 10
+        self.get_eft_interpolator = False
+        self.get_heft_interpolator = False
 
         if self.heft:
 
@@ -71,7 +73,8 @@ class HEFTCalculator(Theory):
 
         reqs = {}
 
-        if ('eft_spectrum_grid' in requirements) | ('eft_spectrum_interpolator' in requirements):
+        if (('eft_spectrum_grid' in requirements) | ('eft_spectrum_interpolator' in requirements)
+            | ('heft_spectrum_grid' in requirements) | ('heft_spectrum_interpolator' in requirements)):
             reqs = {'Pk_interpolator': {'k_max': 10,
                                         'z': self.z,
                                         'nonlinear': False},
@@ -79,7 +82,6 @@ class HEFTCalculator(Theory):
                     'Hubble': {'z': [0.0]}}
 
         if 'eft_spectrum_interpolator' in requirements:
-
             self.get_eft_interpolator = True
 
         if (('heft_spectrum_grid' in requirements)
@@ -90,18 +92,16 @@ class HEFTCalculator(Theory):
                          'N_eff': None})
 
         if 'heft_spectrum_interpolator' in requirements:
-
             self.get_heft_interpolator = True
 
         return reqs
 
     def get_can_provide(self):
 
-        return ['eft_spectrum_grid', 'eft_spectrum_interpolator']
+        return ['eft_spectrum_grid', 'eft_spectrum_interpolator',
+                'heft_spectrum_grid', 'heft_spectrum_interpolator']
 
     def calculate(self, state, want_derived=True, **params_values_dict):
-
-        state['eft_spectrum_grid'] = {}
 
         k = self.k
         pk_lin_interp = self.provider.get_Pk_interpolator(nonlinear=False)
@@ -109,10 +109,10 @@ class HEFTCalculator(Theory):
         D = sigma8_z/sigma8_z[0]
         h = self.provider.get_Hubble(0.0) / 100
 
-        state['eft_spectrum_grid']['k'] = self.k
-        state['eft_spectrum_grid']['power'] = np.zeros((self.nz,
-                                                        self.nspec,
-                                                        self.nk))
+        state['eft_spectrum_k'] = self.k
+        state['eft_spectrum_grid'] = np.zeros((self.nz,
+                                               self.nspec,
+                                               self.nk))
         if self.kecleft:
             pk = pk_lin_interp.P(0, self.k * h)
             cleftobj = RKECLEFT(self.k, pk)
@@ -120,7 +120,7 @@ class HEFTCalculator(Theory):
             for i, z in enumerate(self.z):
                 cleftobj.make_ptable(D=D[i], kmin=k[0], kmax=k[-1], nk=1000)
                 cleftpk = cleftobj.pktable.T
-                state['eft_spectrum_grid']['power'][i, ...] = cleftpk[1:self.nspec+1, :]
+                state['eft_spectrum_grid'][i, ...] = cleftpk[1:self.nspec+1, :]
 
         else:
             for i, z in enumerate(self.z):
@@ -136,12 +136,12 @@ class HEFTCalculator(Theory):
                 cleftobj.make_ptable()
 
                 cleftpk[:, 2:] = cleftobj.pktable[:, 4:self.nspec+1].T
-                state['eft_spectrum_grid']['power'][i, ...] = cleftpk
+                state['eft_spectrum_grid'][i, ...] = cleftpk
 
-        state['eft_spectrum_grid']['power'][1, ...] /= 2
-        state['eft_spectrum_grid']['power'][5, ...] /= 0.25
-        state['eft_spectrum_grid']['power'][6, ...] /= 2
-        state['eft_spectrum_grid']['power'][7, ...] /= 2
+        state['eft_spectrum_grid'][1, ...] /= 2
+        state['eft_spectrum_grid'][5, ...] /= 0.25
+        state['eft_spectrum_grid'][6, ...] /= 2
+        state['eft_spectrum_grid'][7, ...] /= 2
 
         self.eft_spectrum_grid = state['eft_spectrum_grid']
 
@@ -151,14 +151,13 @@ class HEFTCalculator(Theory):
             for i in range(self.nspec):
                 state['eft_spectrum_interpolator'].append(PowerSpectrumInterpolator(self.z,
                                                                                     self.k,
-                                                                                    state['eft_spectrum_grid']['power'][:, i, :]))
+                                                                                    state['eft_spectrum_grid'][:, i, :]))
 
             self.eft_spectrum_interpolator = state['eft_spectrum_interpolator']
 
         if self.heft:
-            state['heft_spectrum_grid'] = {}
             cosmo_params = ['ombh2', 'omch2',
-                            'w', 'ns', 'sigma8', 'H0', 'Neff']
+                            'w', 'ns', 'sigma8', 'H0', 'N_eff']
             cosmo = [self.provider.get_param(par) for par in cosmo_params]
             cosmo.append(1.0)
             cosmo = np.array(cosmo)
@@ -168,14 +167,13 @@ class HEFTCalculator(Theory):
             X[:, -1] = a
 
             emu_spec = self.emu.predict(
-                self.k, X, spec_lpt=state['eft_spectrum_grid']['power'])
-            state['heft_spectrum_grid']['k'] = self.k
-            state['heft_spectrum_grid']['power'] = emu_spec
+                self.k, X, spec_lpt=state['eft_spectrum_grid'])
+            state['heft_spectrum_grid'] = emu_spec
 
-            if self.get_eft_interpolator:
+            if self.get_heft_interpolator:
                 state['heft_spectrum_interpolator'] = []
 
                 for i in range(self.nspec):
                     state['heft_spectrum_interpolator'].append(PowerSpectrumInterpolator(self.z,
                                                                                          self.k,
-                                                                                         state['heft_spectrum_grid']['power'][:, i, :]))
+                                                                                         state['heft_spectrum_grid'][:, i, :]))
