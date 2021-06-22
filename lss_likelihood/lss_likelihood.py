@@ -41,7 +41,7 @@ class XiLikelihood(Likelihood):
         hub  = self.provider.get_Hubble(0)[0]/100.
         sig8 = self.provider.get_sigma8_z(0)[0]
         OmM  = params_values['omegam']
-        b1   = params_values['b1']
+        b1   = params_values['bsig8']/sig8 - 1.0
         b2   = params_values['b2']
         bs   = params_values['bs']
         alp0 = params_values['alpha0']

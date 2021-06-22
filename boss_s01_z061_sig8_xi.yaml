@@ -52,16 +52,16 @@ params:
     latex: \Omega_\mathrm{m}
   sigma8:
     latex: \sigma_8
-  b1:
+  bsig8:
     prior:
       dist: uniform
-      min: -0.5
-      max:  2.0
+      min:  0.5
+      max:  3.0
     ref:
       dist:  norm
-      loc:   1.30
+      loc:   1.76
       scale: 0.05
-    latex: b_1
+    latex: (1+b_1)\sigma_8
   b2:
     prior:
       dist:  norm
@@ -116,7 +116,7 @@ sampler:
     Rminus1_stop: 0.005
     blocking:
       - [1, [logA]]
-      - [3, [b1,b2,bs,alpha0,alpha2]]
+      - [3, [bsig8,b2,bs,alpha0,alpha2]]
 output: chains/boss_s01_z061_sig8_xi
 timing: True
 stop_on_error: True

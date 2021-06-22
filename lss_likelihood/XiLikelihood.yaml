@@ -8,12 +8,12 @@ Hz_fid:   1.40856  # Relative to H(0).
 stop_at_error: true
 #
 params:
-  b1:
+  bsig8:
     prior:
       dist: uniform
-      min: -0.5
-      max:  2.0
-    latex: b_1
+      min:  0.5
+      max:  3.0
+    latex: (1+b_1)\sigma_8
   b2:
     value: 0.0
     latex: b_2
