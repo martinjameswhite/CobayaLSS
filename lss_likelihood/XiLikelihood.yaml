@@ -1,10 +1,7 @@
-zfid:  0.61
 mcut:  25.0
 qcut:  25.0
 datfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.xis
 covfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.xiscov
-chiz_fid: 1559.56  # Mpc/h.
-Hz_fid:   1.40856  # Relative to H(0).
 stop_at_error: true
 #
 params:
