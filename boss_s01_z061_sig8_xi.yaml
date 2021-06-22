@@ -29,7 +29,7 @@ params:
       loc: 3.05
       scale: 0.001
     proposal: 0.001
-    drop: true
+    drop: True
     latex: \log(10^{10} A_\mathrm{s})
   ns:
     value: 0.9667
@@ -59,7 +59,7 @@ params:
       max:  3.0
     ref:
       dist:  norm
-      loc:   1.76
+      loc:   1.75
       scale: 0.05
     latex: (1+b_1)\sigma_8
   b2:
@@ -76,7 +76,7 @@ params:
     prior:
       dist:  norm
       loc:   0.0
-      scale: 5.0
+      scale: 3.0
     ref:
       dist:  norm
       loc:   0.0
@@ -108,15 +108,15 @@ sampler:
     learn_proposal: True
     learn_proposal_Rminus1_max: 10.
     output_every: 60s
-    measure_speeds: false
+    measure_speeds: False
     max_tries: 500
-    drag: True
+    drag: False
     oversample_power: 0.4
     proposal_scale: 1.5
     Rminus1_stop: 0.005
     blocking:
-      - [1, [logA]]
-      - [3, [bsig8,b2,bs,alpha0,alpha2]]
+      - [ 1, [logA]]
+      - [10, [bsig8,b2,bs,alpha0,alpha2]]
 output: chains/boss_s01_z061_sig8_xi
 timing: True
 stop_on_error: True
