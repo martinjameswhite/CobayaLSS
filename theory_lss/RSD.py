@@ -30,12 +30,6 @@ class RSDCalculator(Theory):
 
         self.nspec = 19
 
-        #fiducial distances/hubble params
-        fid_exp_geo = np.genfromtxt(self.fiducial_exp_geo_filename, names=True)
-        self.fid_hz_spline = interp1d(fid_exp_geo['z'], fid_exp_geo['h'])
-        self.fid_chi_spline = interp1d(fid_exp_geo['z'], fid_exp_geo['chi'])
-
-
     def initialize_with_provider(self, provider):
         """
         Initialization after other components initialized, using Provider class
@@ -54,13 +48,16 @@ class RSDCalculator(Theory):
 
         if 'pknu_basis_spectrum_grid' in requirements:
             self.z = requirements['pknu_basis_spectrum_grid']['z']
+            self.chiz_fid = requirements['pknu_basis_spectrum_grid']['chiz_fid']
+            self.hz_fid = requirements['pknu_basis_spectrum_grid']['hz_fid']
+
             return {'Pk_interpolator': {'k_max': 10,
                                         'z': self.z,
                                         'nonlinear': False},
                     'sigma8_z': {'z': self.z},
                     'fsigma8_z': {'z': self.z},
                     'Hubble': {'z': self.z},
-                    'angular_diameter_distance':{'z': self.z},
+                    'angular_diameter_distance': {'z': self.z},
                     'H0': None}
 
 
@@ -81,12 +78,11 @@ class RSDCalculator(Theory):
         f = fsigma8 / sigma8_z
 
         #AP
-        hub = self.provider.get_param('H0')
-        hz_fid = self.fid_hz_spline(self.z)
-        chi_fid = self.fid_chi_spline(self.z)
-        apar = hz_fid/(self.provider.get_Hubble(self.z) * 2997.925 / hub)
+        h = self.provider.get_param('H0') / 100.
+
+        apar = self.hz_fid/(self.provider.get_Hubble(self.z) / h)
         aperp = (self.provider.get_angular_diameter_distance(self.z) *
-                 (1 + self.z) * hub) / da_fid
+                 (1 + self.z) * h) / self.chiz_fid
 
         state['pknu_basis_spectrum_k'] = self.k
         state['pknu_basis_spectrum_nu'] = self.nu
