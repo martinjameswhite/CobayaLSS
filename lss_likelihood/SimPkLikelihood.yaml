@@ -5,7 +5,7 @@ dataset: ['p_gg', 'p_gm']
 kmax: 0.25
 kmin: 0.001
 stop_at_error: true
-heft : False
+heft : True
 
 params:
   b1:
