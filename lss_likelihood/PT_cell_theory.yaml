@@ -1,9 +1,5 @@
-clsfn:  /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s03_cls.txt
-covfn:  /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s03_cov.txt
-wlafn:  /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s03_wla.txt
-wlxfn:  /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s03_wlx.txt
-acut:   300
-xcut:   300
+dndzfn: /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s03_dndz.txt
+stop_at_error: True
 #
 params:
   b1:
