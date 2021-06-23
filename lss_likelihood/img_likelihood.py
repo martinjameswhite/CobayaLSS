@@ -30,8 +30,7 @@ class ClLikelihood(Likelihood):
                'alpha_a': None,\
                'alpha_x': None,\
                'SN': None,\
-               'smag': None,\
-               'omegam': None\
+               'smag': None\
               }
         return(req)
     def logp(self,**params_values):
@@ -125,7 +124,7 @@ class PT_cell_theory(Theory):
               }
         return(req)
     def get_can_provide(self):
-        """What do we provide: a PT class that can compute xi_ell."""
+        """What do we provide: a PT class that can compute C_ell."""
         return ['pt_cell_mod']
     def calculate(self, state, want_derived=True, **params_values_dict):
         """Create and initialize the PT class."""
@@ -134,6 +133,8 @@ class PT_cell_theory(Theory):
         OmM = pp.get_param('omegam')
         hub = self.provider.get_Hubble(0)[0]/100.
         # Set up the APS, including its zeff.
+        # For now chi(z) is assumed LCDM, but we could
+        # pass a Spline or something from the provider.
         aps = T.AngularPowerSpectra(OmM,self.dndz)
         # Get Plin.
         ki  = np.logspace(-3.0,1.5,750)
