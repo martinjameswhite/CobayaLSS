@@ -2,34 +2,3 @@ model:  clpt
 dndzfn: /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s03_dndz.txt
 stop_at_error: True
 #
-params:
-  b1:
-    prior:
-      dist: uniform
-      min: -0.5
-      max:  2.0
-    latex: b_1
-  b2:
-    prior:
-      dist: norm
-      loc:  0.
-      scale: 10.
-    latex: b_2
-  alpha_a:
-    value: 0.0
-    latex: \alpha_a
-  alpha_x:
-    value: 0.0
-    latex: \alpha_\times
-  SN:
-    prior:
-      dist:  norm
-      loc:   3000
-      scale: 300
-    latex: SN
-  smag:
-    prior:
-      dist: norm
-      loc:  1.
-      scale: 0.15
-    latex: s_{\mu}
