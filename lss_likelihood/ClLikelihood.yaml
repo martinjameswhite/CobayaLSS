@@ -18,6 +18,12 @@ params:
       loc:  0.
       scale: 10.
     latex: b_2
+  bs:
+    value: 0.0
+    latex: b_s
+  bn:
+    value: 0.0
+    latex: b_\nabla
   alpha_a:
     value: 0.0
     latex: \alpha_a
@@ -25,14 +31,11 @@ params:
     value: 0.0
     latex: \alpha_\times
   SN:
-    prior:
-      dist:  norm
-      loc:   3000
-      scale: 300
+    value: 0.0
     latex: SN
   smag:
     prior:
       dist: norm
-      loc:  1.
+      loc:   1.00
       scale: 0.15
     latex: s_{\mu}
