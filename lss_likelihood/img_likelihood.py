@@ -114,7 +114,7 @@ class ClLikelihood(Likelihood):
 class PT_cell_theory(Theory):
     """A class to return a PT C_ell module."""
     # From yaml file.
-    model:  str
+    mname:  str
     dndzfn: str
     #
     def initialize(self):
@@ -146,7 +146,7 @@ class PT_cell_theory(Theory):
         # For now chi(z) is assumed LCDM, but we could
         # pass a Spline or something from the provider.
         aps = T.AngularPowerSpectra(OmM,self.dndz)
-        if self.model.startswith('clpt'):
+        if self.mname.startswith('clpt'):
             # Get Plin.
             ki  = np.logspace(-3.0,1.5,750)
             pi  = pp.get_Pk_interpolator(nonlinear=False)
@@ -154,14 +154,16 @@ class PT_cell_theory(Theory):
             # and set the power spectrum module in APS:
             aps.set_pk(ki,pi)
             aps.modelname='clpt'
-        elif self.model.startswith('anzu'):
+        elif self.mname.startswith('anzu'):
             wb   = pp.get_param('ombh2')
             wc   = pp.get_param('omch2')
-            ns   = pp.get_param('ns') - 0.005
+            ns   = pp.get_param('ns')
             sig8 = pp.get_sigma8_z(0)[0]
             cpar = [wb,wc,ns,sig8,hub]
             aps.set_pk(None,None,None,pars=cpar)
             aps.modelname='anzu'
+        else:
+            raise RuntimeError("Unknown mname.")
         # Save the PT model in the state.
         state['pt_cell_mod'] = aps
         #

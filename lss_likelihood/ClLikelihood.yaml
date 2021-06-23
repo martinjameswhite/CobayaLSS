@@ -30,9 +30,6 @@ params:
   alpha_x:
     value: 0.0
     latex: \alpha_\times
-  SN:
-    value: 0.0
-    latex: SN
   smag:
     prior:
       dist: norm
