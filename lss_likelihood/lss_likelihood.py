@@ -129,47 +129,30 @@ class PkLikelihood(Likelihood):
     datfn: str
     covfn: str
     winfn: str
-    zfid:  float
     mcut:  float
     qcut:  float
+    zfid:  float
     chiz_fid: float
     Hz_fid: float
     #
     def initialize(self):
         """Sets up the class."""
         self.loadData()
-        self.omh3    = 0.09633# For setting h if not otherwise given.
-        self.old_slow= None
         #
     def get_requirements(self):
-        zg  = np.linspace(0,self.zfid,8,endpoint=True)
-        req = {\
-                'Pk_interpolator': {'k_max': 30,'z': zg,\
-                                   'nonlinear': False},\
-               'sigma8_z': {'z': [0.0,self.zfid]},\
-               'fsigma8':  {'z': [self.zfid]},\
-               'Hubble':   {'z': [0.0,self.zfid]},\
-               'comoving_radial_distance': {'z': [self.zfid]},\
-               'omegam': None\
+        req = {'pt_pk_ell_mod': None,\
+               'bsig8': None,\
+               'b2': None,\
+               'bs': None,\
+               'alpha0': None,\
+               'alpha2': None,\
+               'SN0': None,\
+               'SN2': None\
               }
         return(req)
     def logp(self,**params_values):
-        """Given a dictionary of nuisance parameter values params_values
-        return a log-likelihood."""
-        hub  = self.provider.get_Hubble(0)[0]/100.
-        sig8 = self.provider.get_sigma8_z(0)[0]
-        OmM  = params_values['omegam']
-        b1   = params_values['b1']
-        b2   = params_values['b2']
-        bs   = params_values['bs']
-        alp0 = params_values['alpha0']
-        alp2 = params_values['alpha2']
-        sn0  = params_values['SN0']
-        sn2  = params_values['SN2']
-        #
-        slow = [OmM,hub,sig8]
-        fast = [b1,b2,bs,alp0,alp2,sn0,sn2]
-        thy  = self.predict(fast,slow)
+        """Return a log-likelihood."""
+        thy  = self.predict()
         obs  = self.observe(thy)
         chi2 = np.dot(self.dd-obs,np.dot(self.cinv,self.dd-obs))
         #
@@ -206,33 +189,25 @@ class PkLikelihood(Likelihood):
         # Finally load the window function matrix.
         self.win = np.loadtxt(self.winfn)
         #
-    def predict(self,fast,slow):
-        """Predict P_ell(k) given the parameters."""
-        OmM,hub,sig8                   = slow
-        b1,b2,bs,alpha0,alpha2,sn0,sn2 = fast
-        biases = [b1,b2,bs,0]      # Set b3=0
-        cterms = [alpha0,alpha2,0] # Set alpha4=0 if no hexadecapole
-        stoch  = [sn0,sn2]
-        bpars  = biases + cterms + stoch
-        # Make shorter names.
-        pp   = self.provider 
-        zfid = self.zfid
+    def predict(self):
+        """Use the PT model to compute P_ell, given biases etc."""
+        pp   = self.provider
+        modPT= pp.get_result('pt_pk_ell_mod')
+        hub  = pp.get_Hubble(0)[0]/100.
+        sig8 = pp.get_sigma8_z(0)[0]
         #
-        if self.old_slow is None:
-            self.old_slow = np.array(slow) + 1
-        if not np.allclose(slow,self.old_slow):
-            # Get Plin.
-            ki = np.logspace(-3.0,1.5,750)
-            pi = pp.get_Pk_interpolator(nonlinear=False)
-            pi = pi.P(self.zfid,ki*hub)*hub**3
-            # Now set up the PT model.
-            self.modPT = MomentExpansion(ki,pi,beyond_gauss=False,\
-                            one_loop=True,shear=True,\
-                            import_wisdom=False,\
-                            kmin=1e-4,kmax=0.5,nk=200,cutoff=10,\
-                            extrap_min=-4,extrap_max=3,N=2000,jn=10)
-            # and update old_slow
-            self.old_slow = slow.copy()
+        b1   = pp.get_param('bsig8')/sig8 - 1.0
+        b2   = pp.get_param('b2')
+        bs   = pp.get_param('bs')
+        alp0 = pp.get_param('alpha0')
+        alp2 = pp.get_param('alpha2')
+        sn0  = pp.get_param('SN0')
+        sn2  = pp.get_param('SN2')
+        #
+        bias = [b1,b2,bs,0.] # Set b3=0
+        cterm= [alp0,alp2,0] # Set alpha4=0 if no hexadecapole
+        stoch= [sn0,sn2]
+        bpars= bias + cterm + stoch
         # Compute the growth rate and work out the A-P scaling.
         s8   = pp.get_sigma8_z(self.zfid)[0]
         fs8  = pp.get_fsigma8(self.zfid)[0]
@@ -243,7 +218,7 @@ class PkLikelihood(Likelihood):
         apar,aperp = self.Hz_fid/Hz,chiz/self.chiz_fid
         # Call the PT model to get P_ell -- we'll grid it onto the
         # appropriate binning for the window function in observe.
-        kv,p0,p2,p4=self.modPT.compute_redshift_space_power_multipoles(bpars,\
+        kv,p0,p2,p4=modPT.compute_redshift_space_power_multipoles(bpars,\
                          ff,apar=apar,aperp=aperp,reduced=True)
         # Put a point at k=0 to anchor the low-k part of the Spline.
         kv,p0 = np.append([0.,],kv),np.append([sn0,],p0)
@@ -316,4 +291,64 @@ class PT_xi_theory(Theory):
         modPT.make_pltable(ff,apar=apar,aperp=aperp,\
                            kmin=1e-3,kmax=0.8,nk=100,nmax=5)
         state['pt_xi_ell_mod'] = modPT
+        #
+
+
+
+
+
+class PT_pk_theory(Theory):
+    """A class to return a PT P_ell module."""
+    # From yaml file.
+    zfid:     float
+    chiz_fid: float
+    Hz_fid:   float
+    #
+    def initialize(self):
+        """Sets up the class."""
+        # Don't need to do anything.
+        pass
+    def get_requirements(self):
+        """What we need in order to provide P_ell."""
+        zg  = np.linspace(0,self.zfid,8,endpoint=True)
+        # Don't need sigma8_z, fsigma8 or radial distance
+        # here, but want them up in likelihood and they
+        # only depend on cosmological things (not biases).
+        req = {\
+               'Pk_interpolator': {'k_max': 30,'z': zg,\
+                                   'nonlinear': False},\
+               'Hubble':   {'z': [0.0,self.zfid]},\
+               'sigma8_z': {'z': [0.0,self.zfid]},\
+               'fsigma8':  {'z': [self.zfid]},\
+               'comoving_radial_distance': {'z': [self.zfid]}\
+              }
+        return(req)
+    def get_can_provide(self):
+        """What do we provide: a PT class that can compute xi_ell."""
+        return ['pt_pk_ell_mod']
+    def calculate(self, state, want_derived=True, **params_values_dict):
+        """Create and initialize the PT class."""
+        # Make shorter names.
+        pp   = self.provider
+        zfid = self.zfid
+        # Get cosmological parameters
+        hub  = pp.get_Hubble(0)[0]/100.
+        #s8   = pp.get_sigma8_z(self.zfid)[0]
+        #fs8  = pp.get_fsigma8(self.zfid)[0]
+        #ff   = fs8 / s8
+        # and Plin.
+        ki   = np.logspace(-3.0,1.5,750)
+        pi   = pp.get_Pk_interpolator(nonlinear=False)
+        pi   = pi.P(self.zfid,ki*hub)*hub**3
+        # Work out the A-P scaling to the fiducial cosmology.
+        #Hz   = pp.get_Hubble(self.zfid)[0]/pp.get_Hubble(0)[0]
+        #chiz = pp.get_comoving_radial_distance(self.zfid)[0]*hub
+        #apar,aperp = self.Hz_fid/Hz,chiz/self.chiz_fid
+        # Now generate and save the PT model
+        modPT = MomentExpansion(ki,pi,beyond_gauss=False,\
+                      one_loop=True,shear=True,\
+                      import_wisdom=False,\
+                      kmin=1e-4,kmax=0.5,nk=200,cutoff=10,\
+                      extrap_min=-4,extrap_max=3,N=2000,jn=10)
+        state['pt_pk_ell_mod'] = modPT
         #

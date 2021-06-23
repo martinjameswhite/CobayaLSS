@@ -1,20 +1,20 @@
-zfid:  0.61
 mcut:  0.25
 qcut:  0.20
 datfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.pks
 covfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.cov
 winfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.win
+zfid:     0.61
 chiz_fid: 1559.56  # Mpc/h.
 Hz_fid:   1.40856  # Relative to H(0).
 stop_at_error: true
 #
 params:
-  b1:
+  bsig8:
     prior:
       dist: uniform
-      min: -0.5
-      max:  2.0
-    latex: b_1
+      min:  0.5
+      max:  3.5
+    latex: (1+b_1)\sigma_8
   b2:
     value: 0.0
     latex: b_2
