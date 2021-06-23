@@ -1,0 +1,7 @@
+kmin: 1e-3
+kmax: 0.8
+nk: 100
+ngauss: 3
+nmax: 5
+kIR: 0.2
+fiducial_exp_geo_filename
