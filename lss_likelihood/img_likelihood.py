@@ -115,7 +115,7 @@ class PT_cell_theory(Theory):
         self.zmax = np.max(self.dndz[:,0])
     def get_requirements(self):
         """What we need in order to provide C_ell."""
-        zg  = np.linspace(self.zmin,self.zmax,11,endpoint=True)
+        zg  = np.linspace(self.zmin,self.zmax,21,endpoint=True)
         req = {\
                'Pk_interpolator': {'k_max': 30,'z': zg,\
                                    'nonlinear': False},\
