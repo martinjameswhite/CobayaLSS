@@ -12,7 +12,7 @@ theory:
       - 100
     stop_at_error: True
   img_likelihood.PT_cell_theory:
-    model:  clpt
+    mname:  clpt
     dndzfn: /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s03_dndz.txt
     stop_at_error: True
 likelihood:
@@ -94,12 +94,12 @@ params:
   SN:
     prior:
       dist:  norm
-      loc:   3000
-      scale: 300
+      loc:   3000.
+      scale: 300.
     ref:
       dist:  norm
-      loc:   3000
-      scale: 50
+      loc:   3000.
+      scale: 50.
     latex: SN
   smag:
     prior:
