@@ -75,7 +75,7 @@ class ClLikelihood(Likelihood):
         b2   = pp.get_param('b2')
         SN   = pp.get_param('SN')
         smag = pp.get_param('smag')
-        if pp.get_result('pt_modelname').startswith('clpt'):
+        if modPT.modelname.startswith('clpt'):
             alpA   = pp.get_param('alpha_a')
             alpX   = pp.get_param('alpha_x')
             bs,b3  = 0.0,0.0
@@ -83,10 +83,12 @@ class ClLikelihood(Likelihood):
             cterms = [alpA,alpX]
             stoch  = [SN]
             pars   = biases + cterms + stoch
-        elif pp.get_result('pt_modelname').startswith('anzu'):
+        elif modPT.modelname.startswith('anzu'):
             bs   = pp.get_param('bs')
             bn   = pp.get_param('bn')
             pars = [b1,b2,bs,bn,SN]
+        else:
+            raise RuntimeError("Unknown modelname.")
         #
         ell,clgg,clgk = modPT(pars,smag,Lmax=1251)
         tt = np.array([ell,clgg,clgk]).T
@@ -151,6 +153,7 @@ class PT_cell_theory(Theory):
             pi  = pi.P(aps.zeff,ki*hub)*hub**3
             # and set the power spectrum module in APS:
             aps.set_pk(ki,pi)
+            aps.modelname='clpt'
         elif self.model.startswith('anzu'):
             wb   = pp.get_param('ombh2')
             wc   = pp.get_param('omch2')
@@ -158,7 +161,7 @@ class PT_cell_theory(Theory):
             sig8 = pp.get_sigma8_z(0)[0]
             cpar = [wb,wc,ns,sig8,hub]
             aps.set_pk(None,None,None,pars=cpar)
+            aps.modelname='anzu'
         # Save the PT model in the state.
         state['pt_cell_mod'] = aps
-        state['cell_modelname']=self.model
         #
