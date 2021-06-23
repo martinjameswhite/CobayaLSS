@@ -1,3 +1,4 @@
+model:  clpt
 dndzfn: /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s03_dndz.txt
 stop_at_error: True
 #

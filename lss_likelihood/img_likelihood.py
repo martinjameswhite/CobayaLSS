@@ -27,6 +27,8 @@ class ClLikelihood(Likelihood):
         req = {'pt_cell_mod': None,\
                'b1': None,\
                'b2': None,\
+               'bs': None,\
+               'bn': None,\
                'alpha_a': None,\
                'alpha_x': None,\
                'SN': None,\
@@ -71,16 +73,20 @@ class ClLikelihood(Likelihood):
         modPT= pp.get_result('pt_cell_mod')
         b1   = pp.get_param('b1')
         b2   = pp.get_param('b2')
-        alpA = pp.get_param('alpha_a')
-        alpX = pp.get_param('alpha_x')
         SN   = pp.get_param('SN')
         smag = pp.get_param('smag')
-        #
-        bs,b3  = 0.0,0.0
-        biases = [b1,b2,bs,b3]
-        cterms = [alpA,alpX]
-        stoch  = [SN]
-        pars   = biases + cterms + stoch
+        if pp.get_result('pt_modelname').startswith('clpt'):
+            alpA   = pp.get_param('alpha_a')
+            alpX   = pp.get_param('alpha_x')
+            bs,b3  = 0.0,0.0
+            biases = [b1,b2,bs,b3]
+            cterms = [alpA,alpX]
+            stoch  = [SN]
+            pars   = biases + cterms + stoch
+        elif pp.get_result('pt_modelname').startswith('anzu'):
+            bs   = pp.get_param('bs')
+            bn   = pp.get_param('bn')
+            pars = [b1,b2,bs,bn,SN]
         #
         ell,clgg,clgk = modPT(pars,smag,Lmax=1251)
         tt = np.array([ell,clgg,clgk]).T
@@ -106,6 +112,7 @@ class ClLikelihood(Likelihood):
 class PT_cell_theory(Theory):
     """A class to return a PT C_ell module."""
     # From yaml file.
+    model:  str
     dndzfn: str
     #
     def initialize(self):
@@ -119,6 +126,7 @@ class PT_cell_theory(Theory):
         req = {\
                'Pk_interpolator': {'k_max': 30,'z': zg,\
                                    'nonlinear': False},\
+               'sigma8_z': {'z': [0]},\
                'Hubble': {'z': [0]},\
                'omegam': None\
               }
@@ -126,7 +134,7 @@ class PT_cell_theory(Theory):
     def get_can_provide(self):
         """What do we provide: a PT class that can compute C_ell."""
         return ['pt_cell_mod']
-    def calculate(self, state, want_derived=True, **params_values_dict):
+    def calculate(self,state,want_derived=True,**params_values_dict):
         """Create and initialize the PT class."""
         # Make shorter names and get params.
         pp  = self.provider
@@ -136,12 +144,21 @@ class PT_cell_theory(Theory):
         # For now chi(z) is assumed LCDM, but we could
         # pass a Spline or something from the provider.
         aps = T.AngularPowerSpectra(OmM,self.dndz)
-        # Get Plin.
-        ki  = np.logspace(-3.0,1.5,750)
-        pi  = pp.get_Pk_interpolator(nonlinear=False)
-        pi  = pi.P(aps.zeff,ki*hub)*hub**3
-        # and set the power spectrum module in APS:
-        aps.set_pk(ki,pi)
+        if self.model.startswith('clpt'):
+            # Get Plin.
+            ki  = np.logspace(-3.0,1.5,750)
+            pi  = pp.get_Pk_interpolator(nonlinear=False)
+            pi  = pi.P(aps.zeff,ki*hub)*hub**3
+            # and set the power spectrum module in APS:
+            aps.set_pk(ki,pi)
+        elif self.model.startswith('anzu'):
+            wb   = pp.get_param('ombh2')
+            wc   = pp.get_param('omch2')
+            ns   = pp.get_param('ns') - 0.005
+            sig8 = pp.get_sigma8_z(0)[0]
+            cpar = [wb,wc,ns,sig8,hub]
+            aps.set_pk(None,None,None,pars=cpar)
         # Save the PT model in the state.
         state['pt_cell_mod'] = aps
+        state['cell_modelname']=self.model
         #
