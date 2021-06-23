@@ -12,6 +12,7 @@ theory:
       - 100
     stop_at_error: True
   img_likelihood.PT_cell_theory:
+    model:  clpt
     dndzfn: /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s03_dndz.txt
     stop_at_error: True
 likelihood:
