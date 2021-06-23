@@ -4,6 +4,7 @@ wlafn:  /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s03_wla.txt
 wlxfn:  /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s03_wlx.txt
 acut:   300
 xcut:   300
+stop_at_error: True
 #
 params:
   b1:
