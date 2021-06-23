@@ -1,0 +1,130 @@
+theory:
+  camb:
+    extra_args:
+      bbn_predictor: PArthENoPE_880.2_standard.dat
+      lens_potential_accuracy: 1
+      num_massive_neutrinos: 1
+      nnu: 3.046
+      mnu: 0.06
+      tau: 0.07
+      theta_H0_range:
+      - 20
+      - 100
+    stop_at_error: True
+  img_likelihood.PT_cell_theory:
+    dndzfn: /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s03_dndz.txt
+    stop_at_error: True
+likelihood:
+  img_likelihood.ClLikelihood:
+    clsfn:  /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s03_cls.txt
+    covfn:  /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s03_cov.txt
+    wlafn:  /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s03_wla.txt
+    wlxfn:  /global/cscratch1/sd/mwhite/DESI/LRGx/fit_cl/data/lrg_s03_wlx.txt
+    acut:  300
+    xcut:  300
+    stop_at_error: True
+params:
+  logA:
+    prior:
+      min: 1.61
+      max: 3.91
+    ref:
+      dist: norm
+      loc:    3.050
+      scale:  0.001
+    proposal: 0.001
+    drop: True
+    latex: \log(10^{10} A_\mathrm{s})
+  ns:
+    value: 0.9667
+  H0:
+    value: 67.74
+  ombh2:
+    value: 0.022
+  omch2:
+    value: 0.119
+  As:
+    value: 'lambda logA: 1e-10*np.exp(logA)'
+    latex: A_\mathrm{s}
+  omegam:
+    latex: \Omega_\mathrm{m}
+  sigma8:
+    latex: \sigma_8
+  b1:
+    prior:
+      dist: uniform
+      min: -0.5
+      max:  2.5
+    ref:
+      dist:  norm
+      loc:   1.25
+      scale: 0.05
+    latex: b_1
+  b2:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 15.
+    ref:
+      dist:  norm
+      loc:   0.0
+      scale: 1.0
+    latex: b_2
+  alpha_a:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 50.
+    ref:
+      dist:  norm
+      loc:   1.0
+      scale: 5.0
+    latex: \alpha_a
+  alpha_x:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 50.
+    ref:
+      dist:  norm
+      loc:   1.0
+      scale: 5.0
+    latex: \alpha_\times
+  SN:
+    prior:
+      dist:  norm
+      loc:   3000
+      scale: 300
+    ref:
+      dist:  norm
+      loc:   3000
+      scale: 50
+    latex: SN
+  smag:
+    prior:
+      dist: norm
+      loc:   1.00
+      scale: 0.15
+    ref:
+      dist:  norm
+      loc:   1.00
+      scale: 0.10
+    latex: s_{\mu}
+sampler:
+  mcmc:
+    #covmat: auto
+    learn_proposal: True
+    learn_proposal_Rminus1_max: 10.
+    output_every: 60s
+    measure_speeds: false
+    max_tries: 500
+    drag: False
+    oversample_power: 0.4
+    proposal_scale: 1.5
+    Rminus1_stop: 0.005
+    blocking:
+      - [ 1, [logA]]
+      - [10, [b1,b2,alpha_a,alpha_x,SN,smag]]
+output: chains/lrg_s03_300_300_clpt_logA
+timing: True
+stop_on_error: True
