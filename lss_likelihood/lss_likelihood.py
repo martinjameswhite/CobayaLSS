@@ -174,12 +174,12 @@ class PkLikelihood(Likelihood):
             cov[ :,ii] = 0
             cov[ii,ii] = 1e20
         for i in np.nonzero(self.xx>self.qcut)[0]:       # Quadrupole.
-            ii = i + 1*self.xx.size
+            ii = i + 2*self.xx.size
             cov[ii, :] = 0
             cov[ :,ii] = 0
             cov[ii,ii] = 1e20
         #for i in range(self.xx.size):                    # Hexadecapole.
-        #    ii = i + 2*self.xx.size
+        #    ii = i + 4*self.xx.size
         #    cov[ii, :] = 0
         #    cov[ :,ii] = 0
         #    cov[ii,ii] = 1e20
