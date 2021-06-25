@@ -16,7 +16,6 @@ class RSDCalculator(Theory):
     ngauss: int
     nmax: int
     kIR: float
-    fiducial_exp_geo_filename: str
 
     def initialize(self):
         """called from __init__ to initialize"""
@@ -24,11 +23,6 @@ class RSDCalculator(Theory):
         self.k = np.logspace(np.log10(self.kmin),
                              np.log10(self.kmax),
                              self.nk)
-
-        nus, ws = np.polynomial.legendre.leggauss(2*self.ngauss)
-        self.nus = nus[0:self.ngauss]
-
-        self.nspec = 19
 
     def initialize_with_provider(self, provider):
         """
@@ -42,58 +36,58 @@ class RSDCalculator(Theory):
         Return dictionary of derived parameters or other quantities that are needed
         by this component and should be calculated by another theory class.
         """
+
         return {}
 
     def must_provide(self, **requirements):
+        for i, t in enumerate(requirements):
+            if i == 0:
+                self.z = requirements[t]['z']
+                self.chiz_fid = requirements[t]['chiz_fid']
+                self.hz_fid = requirements[t]['hz_fid']
 
-        if 'pknu_basis_spectrum_grid' in requirements:
-            self.z = requirements['pknu_basis_spectrum_grid']['z']
-            self.chiz_fid = requirements['pknu_basis_spectrum_grid']['chiz_fid']
-            self.hz_fid = requirements['pknu_basis_spectrum_grid']['hz_fid']
+            # spec type is everything before first underscore. i.e. p0/p2/p4
+            spec_type = t.split('_')[0]
+            setattr(self, 'compute_{}'.format(spec_type), True)
 
-            return {'Pk_interpolator': {'k_max': 10,
-                                        'z': self.z,
-                                        'nonlinear': False},
-                    'sigma8_z': {'z': self.z},
-                    'fsigma8_z': {'z': self.z},
-                    'Hubble': {'z': self.z},
-                    'angular_diameter_distance': {'z': self.z},
-                    'H0': None}
-
+        return {'Pk_interpolator': {'k_max': 10,
+                                    'z': self.z,
+                                    'nonlinear': False},
+                'sigma8_z': {'z': self.z},
+                'fsigma8_z': {'z': self.z},
+                'Hubble': {'z': self.z},
+                'angular_diameter_distance': {'z': self.z},
+                'H0': None}
 
     def get_can_provide(self):
 
-        return ['pknu_basis_spectrum_grid']
+        return ['p0_basis_spectrum_grid', 'p2_basis_spectrum_grid',
+                'p4_basis_spectrum_grid', 'pell_kvalues']
 
     def calculate(self, state, want_derived=True, **params_values_dict):
 
-        k = self.k
-        nu = self.nu
-
         pk_lin_interp = self.provider.get_Pk_interpolator(nonlinear=False)
 
-        #linear growth rate
+        # linear growth rate
         sigma8_z = self.provider.get_sigma8_z(self.z)
         fsigma8 = self.provider.get_fsigma8(self.z)
         f = fsigma8 / sigma8_z
 
-        #AP
+        # AP
         h = self.provider.get_param('H0') / 100.
-
         apar = self.hz_fid/(self.provider.get_Hubble(self.z) / h)
         aperp = (self.provider.get_angular_diameter_distance(self.z) *
                  (1 + self.z) * h) / self.chiz_fid
 
-        state['pknu_basis_spectrum_k'] = self.k
-        state['pknu_basis_spectrum_nu'] = self.nu
-        state['pknu_basis_spectrum_grid']= np.zeros((len(z), len(k), len(nu),
-                                                     self.nspec)
+        state['pell_kvalues'] = self.k
 
         for i, z in enumerate(self.z):
             pk = pk_lin_interp.P(z, self.k)
             lpt = LPT_RSD(self.k, pk, kIR=self.kIR)
             lpt.make_pltable(f[i], nmax=self.nmax, kmin=self.kmin,
                              kmax=self.kmax, nk=self.nk,
-                             apar=apar[i],aperp=aperp[i])
+                             apar=apar[i], aperp=aperp[i])
 
-            state['pknu_basis_spectrum_grid'][i,...] = lpt.pknutable
+            state['p0_basis_spectrum_grid'][i, ...] = lpt.p0ktable
+            state['p2_basis_spectrum_grid'][i, ...] = lpt.p2ktable
+            state['p4_basis_spectrum_grid'][i, ...] = lpt.p4ktable

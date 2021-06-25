@@ -1,10 +1,6 @@
 kmin: 1e-3
 kmax: 0.5
 nk: 200
-zmin: 0.0
-zmax: 0.7
-nz: 5
-z: []
 ngauss: 3
 nmax: 4
 kIR: 0.2

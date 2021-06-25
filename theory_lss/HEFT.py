@@ -75,10 +75,16 @@ class HEFTCalculator(Theory):
 
         if (('eft_spectrum_grid' in requirements) | ('eft_spectrum_interpolator' in requirements)
             | ('heft_spectrum_grid' in requirements) | ('heft_spectrum_interpolator' in requirements)):
+
+            if 'z' in requirements['heft_spectrum_interpolator']:
+                zs = requirements['heft_spectrum_interpolator']['z']
+            else:
+                zs = self.z
+                
             reqs = {'Pk_interpolator': {'k_max': 10,
-                                        'z': self.z,
+                                        'z': zs,
                                         'nonlinear': False},
-                    'sigma8_z': {'z': self.z},
+                    'sigma8_z': {'z': zs},
                     'Hubble': {'z': [0.0]}}
 
         if 'eft_spectrum_interpolator' in requirements:
