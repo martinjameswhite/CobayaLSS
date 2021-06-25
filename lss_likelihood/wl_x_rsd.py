@@ -22,12 +22,20 @@ class HarmonicSpaceWLxRSD(Likelihood):
     # All assuming galaxy-CMB lensing
     # still need to implement galaxy-galaxy lensing
 
-    datavector_requires = {'p0': ['window_p0', 'z_fid', 'chiz_fid', 'hz_fid', 'k_min', 'k_max'],
-                           'p2': ['window_p2', 'z_fid', 'chiz_fid', 'hz_fid', 'k_min', 'k_max'],
-                           'p4': ['window_p4', 'z_fid', 'chiz_fid', 'hz_fid', 'k_min', 'k_max'],
-                           'c_kk': ['window_kk', 'ell_min', 'ell_max'],
-                           'c_dk': ['window_dk', 'nz_d', 'ell_min', 'ell_max'],
-                           'c_gd': ['window_dd', 'nz_d', 'ell_min', 'ell_max']}
+#    datavector_requires = {'p0': ['window_p0', 'z_fid', 'chiz_fid', 'hz_fid', 'k_min', 'k_max'],
+#                           'p2': ['window_p2', 'z_fid', 'chiz_fid', 'hz_fid', 'k_min', 'k_max'],
+#                           'p4': ['window_p4', 'z_fid', 'chiz_fid', 'hz_fid', 'k_min', 'k_max'],
+#                           'c_kk': ['window_kk', 'ell_min', 'ell_max'],
+#                           'c_dk': ['window_dk', 'nz_d', 'ell_min', 'ell_max'],
+#                           'c_gd': ['window_dd', 'nz_d', 'ell_min', 'ell_max']}
+
+    #ignore scale cuts and windows for now
+    datavector_requires = {'p0': ['z_fid', 'chiz_fid', 'hz_fid'],
+                           'p2': ['z_fid', 'chiz_fid', 'hz_fid'],
+                           'p4': ['z_fid', 'chiz_fid', 'hz_fid'],
+                           'c_kk': [],
+                           'c_dk': ['nz_d'],
+                           'c_gd': ['nz_d']}
 
     def initialize(self):
         """Sets up the class."""
@@ -149,7 +157,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                          (cov_raw['zbin10'] == zb10) & \
                          (cov_raw['zbin11'] == zb11)
 
-                self.cov[idxi, idxj] = cov_raw[covidx]
+                self.cov[idxi, idxj] = cov_raw[covidx]['value']
                 zbin_counter[(t0, t1)].extend(
                     permutations((zb00, zb01, zb10, zb11)))
 
