@@ -36,6 +36,10 @@ params:
     value: 0.9667
   H0:
     value: 67.74
+  # Instead of specifying H0 could instead specify thetastar (or cosmomc_theta).
+  # For example, from Eq. (9) of PP18:
+  #thetastar:
+  #  value: 0.0104109
   ombh2:
     value: 0.022
   omch2:
