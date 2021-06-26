@@ -7,6 +7,13 @@ from predict_cl import AngularPowerSpectra
 from scipy.interpolate import interp1d
 import yaml
 
+datavector_requires = {'p0': ['z_fid', 'chiz_fid', 'hz_fid'],
+                       'p2': ['z_fid', 'chiz_fid', 'hz_fid'],
+                       'p4': ['z_fid', 'chiz_fid', 'hz_fid'],
+                       'c_kk': [],
+                       'c_dk': ['nz_d'],
+                       'c_dd': ['nz_d']}
+
 
 class HarmonicSpaceWLxRSD(Likelihood):
     # From yaml file.
@@ -30,12 +37,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
 #                           'c_gd': ['window_dd', 'nz_d', 'ell_min', 'ell_max']}
 
     #ignore scale cuts and windows for now
-    datavector_requires = {'p0': ['z_fid', 'chiz_fid', 'hz_fid'],
-                           'p2': ['z_fid', 'chiz_fid', 'hz_fid'],
-                           'p4': ['z_fid', 'chiz_fid', 'hz_fid'],
-                           'c_kk': [],
-                           'c_dk': ['nz_d'],
-                           'c_gd': ['nz_d']}
+
 
     def initialize(self):
         """Sets up the class."""
@@ -63,9 +65,10 @@ class HarmonicSpaceWLxRSD(Likelihood):
         # (e.g. p0), redshift bin number for each sample being
         # correlated, separation values (e.g. k, ell, etc.), and
         # actual values for the spectra/correlation functions
+        dt = np.dtype([('spectrum_type','U10'), ('zbin0', np.int), ('zbin1', np.int), ('separation', np.float), ('value', np.float)])
 
         self.spectra = np.genfromtxt(datavector_info['spectra_filename'],
-                                     names=True)
+                                     names=True, dtype=dt)
         self.spectrum_types = np.unique(self.spectra['spectrum_type'])
         self.spectrum_info = {}
         self.n_dv = len(self.spectra)
@@ -104,7 +107,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                                      'ndv_per_bin': ndv_per_bin,
                                      'separation': sep}
 
-            requirements.extend(self.datavector_requires[t])
+            requirements.extend(datavector_requires[t])
 
         requirements = np.unique(np.array(requirements))
 
@@ -112,14 +115,15 @@ class HarmonicSpaceWLxRSD(Likelihood):
             if r in ['z_fid', 'chiz_fid', 'hz_fid']:
                 setattr(self, r, datavector_info[r])
             else:
-                setattr(self, r, np.genfromtxt[datavector_info[r]])
+                setattr(self, r, np.genfromtxt(datavector_info[r], dtype=None, names=True))
 
         # Always need a covariance matrix. This should be a text file
         # with columns specifying the two data vector types, and four redshift
         # bin indices for each element, as well as a column for the elements
         # themselves
-
-        cov_raw = np.genfromtxt(datavector_info['covariance_filename'])
+        dt = np.dtype([('spectrum_type0','U10'), ('spectrum_type1','U10'), ('zbin00', np.int),
+                  ('zbin01', np.int), ('zbin10', np.int), ('zbin11', np.int), ('value', np.float)])
+        cov_raw = np.genfromtxt(datavector_info['covariance_filename'], names=True, dtype=dt)
 
         self.cov = np.zeros((self.n_dv, self.n_dv))
 
@@ -133,13 +137,13 @@ class HarmonicSpaceWLxRSD(Likelihood):
             if (t0, t1) not in zbin_counter.keys():
                 zbin_counter[(t0, t1)] = []
 
-            n00, n01, n10, n11 = self.spectrum_info[t0]['nbins0'], \
-                self.spectrum_info[t0]['nbins1'], \
-                self.spectrum_info[t1]['nbins0'], \
-                self.spectrum_info[t1]['nbins1']
+            n00, n01, n10, n11 = np.arange(self.spectrum_info[t0]['nbins0']), \
+                np.arange(self.spectrum_info[t0]['nbins1']), \
+                np.arange(self.spectrum_info[t1]['nbins0']), \
+                np.arange(self.spectrum_info[t1]['nbins1'])
 
             for zb00, zb01, zb10, zb11 in product(n00, n01, n10, n11):
-                if (zb00, zb01, zb10, zb11) in zbin_counter[(t0, t1)]:
+                if ((zb00, zb01), (zb10, zb11)) in zbin_counter[(t0, t1)]:
                     continue
 
                 idxi = (self.spectra['spectrum_type'] == t0) & \
@@ -150,16 +154,25 @@ class HarmonicSpaceWLxRSD(Likelihood):
                        (self.spectra['zbin0'] == zb10) & \
                        (self.spectra['zbin1'] == zb11)
 
-                covidx = (cov_raw['spectrum_type0'] == t0) & \
+                covidx = (((cov_raw['spectrum_type0'] == t0) & \
                          (cov_raw['zbin00'] == zb00) & \
                          (cov_raw['zbin01'] == zb01) & \
                          (cov_raw['spectrum_type1'] == t1) & \
                          (cov_raw['zbin10'] == zb10) & \
-                         (cov_raw['zbin11'] == zb11)
+                         (cov_raw['zbin11'] == zb11))) #|
+#                          ((cov_raw['spectrum_type0'] == t0) & \
+#                         (cov_raw['zbin00'] == zb00) & \
+#                         (cov_raw['zbin01'] == zb01) & \
+#                         (cov_raw['spectrum_type1'] == t1) & \
+#                         (cov_raw['zbin10'] == zb10) & \
+#                         (cov_raw['zbin11'] == zb11)))
 
-                self.cov[idxi, idxj] = cov_raw[covidx]['value']
-                zbin_counter[(t0, t1)].extend(
-                    permutations((zb00, zb01, zb10, zb11)))
+                try:
+                    self.cov[idxi, idxj] = cov_raw[covidx]['value']
+                    zbin_counter[(t0, t1)].extend(
+                        permutations(((zb00, zb01), (zb10, zb11))))
+                except:
+                    pass
 
             spec_type_counter.extend(permutations((t0, t1)))
 
@@ -189,14 +202,14 @@ class HarmonicSpaceWLxRSD(Likelihood):
             else:
                 reqs.update({'eft_spectrum_interpolator': self.z})
 
-            z = np.stack(self.z, [1098.])
+            z = np.concatenate([self.z, [1098.]])
             reqs.update({'comoving_radial_distance': {'z': z},
                          'Hubble': {'z': self.z},
                          'H0': None,
                          'omegam': None})
 
         if self.compute_pell:
-            reqs['pell_kval'] = None
+            reqs['pell_kvalues'] = None
             if self.compute_p0:
                 reqs['p0_basis_spectrum_grid'] = {}
                 reqs['p0_basis_spectrum_grid']['z'] = self.z_fid
