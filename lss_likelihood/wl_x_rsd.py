@@ -1,6 +1,6 @@
 import numpy as np
 from cobaya.likelihood import Likelihood
-from cobaya.typing import Sequence
+from cobaya.typing import Union, Sequence
 from cobaya.theories.cosmo import PowerSpectrumInterpolator
 from itertools import permutations, product
 from predict_cl import AngularPowerSpectra
@@ -23,6 +23,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
     zmax_proj: float
     nz_proj: int
     nchi_proj: int
+    use_samples: Optional[Union[Sequence, np.ndarray]]
 
     # k = convergence
     # d = (galaxy) density
@@ -181,10 +182,14 @@ class HarmonicSpaceWLxRSD(Likelihood):
     def setup_projection(self):
 
         self.ndbins = self.spectrum_info['c_dk']['nbins0']
+        if not hasattr(self, 'use_samples'):
+            self.use_samples = np.arange(self.ndbins)
 
         self.projection_models = []
 
         for i in range(self.ndbins):
+            if i not in self.use_samples:
+                continue
             dndz = Spline(self.nz_d['z'],
                           self.nz_d['nz{}'.format(i)])(self.z)
             aps = AngularPowerSpectra(self.z, dndz,
@@ -209,24 +214,11 @@ class HarmonicSpaceWLxRSD(Likelihood):
                          'omegam': None})
 
         if self.compute_pell:
-            reqs['pell_kvalues'] = None
-            if self.compute_p0:
-                reqs['p0_basis_spectrum_grid'] = {}
-                reqs['p0_basis_spectrum_grid']['z'] = self.z_fid
-                reqs['p0_basis_spectrum_grid']['chiz_fid'] = self.chiz_fid
-                reqs['p0_basis_spectrum_grid']['hz_fid'] = self.hz_fid
 
-            if self.compute_p2:
-                reqs['p2_basis_spectrum_grid'] = {}
-                reqs['p2_basis_spectrum_grid']['z'] = self.z_fid
-                reqs['p2_basis_spectrum_grid']['chiz_fid'] = self.chiz_fid
-                reqs['p2_basis_spectrum_grid']['hz_fid'] = self.hz_fid
-
-            if self.compute_p4:
-                reqs['p4_basis_spectrum_grid'] = {}
-                reqs['p4_basis_spectrum_grid']['z'] = self.z_fid
-                reqs['p4_basis_spectrum_grid']['chiz_fid'] = self.chiz_fid
-                reqs['p4_basis_spectrum_grid']['hz_fid'] = self.hz_fid
+            reqs['pt_pk_ell_model'] = {}
+            reqs['pt_pk_ell_model']['z'] = self.z_fid
+            reqs['pt_pk_ell_model']['chiz_fid'] = self.chiz_fid
+            reqs['pt_pk_ell_model']['hz_fid'] = self.hz_fid
 
         return reqs
 
@@ -305,6 +297,8 @@ class HarmonicSpaceWLxRSD(Likelihood):
             # galaxy lensing, and lens x lens cross corr
             # not implemented yet
             for i in range(self.ndbins):
+                if i not in self.use_samples:
+                    continue
                 b1 = params_values['b1_{}'.format(i)]
                 b2 = params_values['b2_{}'.format(i)]
                 bs = params_values['bs_{}'.format(i)]
@@ -350,21 +344,13 @@ class HarmonicSpaceWLxRSD(Likelihood):
                         self.spectrum_info['c_dd']['separation'])
 
         if self.compute_pell:
-            k = self.provider.get_result('pell_kvalues')
 
-            if self.compute_p0:
-                p0table = self.provider.get_result(
-                    'p0_basis_spectrum_grid')
-
-            if self.compute_p2:
-                p2table = self.provider.get_result(
-                    'p2_basis_spectrum_grid')
-
-            if self.compute_p4:
-                p4table = self.provider.get_result(
-                    'p4_basis_spectrum_grid')
+            pt_models = self.provider.get_result(
+                    'pt_pk_ell_model')
 
             for i in range(self.ndbins):
+                if i not in self.use_samples:
+                    continue
                 b1 = params_values['b1_{}'.format(i)]
                 b2 = params_values['b2_{}'.format(i)]
                 bs = params_values['bs_{}'.format(i)]
@@ -384,28 +370,29 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
                 # compute multipoles and interpolate onto desired k values
                 # need to implement window/wide angle stuff still.
+                lpt = pt_models[i]
+                k, p0, p2, p4 = lpt.combine_bias_terms_pkell(bias_params)
                 if self.compute_p0:
-                    p0 = self.combine_pkell_spectra(bias_params, p0table[i])
                     p0_spline = interp1d(k, p0)
                     self.spectrum_info['p0']['{}_model'.format(i)] = p0_spline(
                         self.spectrum_info['p0']['separation'])
 
                 if self.compute_p2:
-                    p2 = self.combine_pkell_spectra(bias_params, p2table[i])
                     p2_spline = interp1d(k, p2)
-                    self.spectrum_info['p2']['{}_model'.format(i)] = p0_spline(
+                    self.spectrum_info['p2']['{}_model'.format(i)] = p2_spline(
                         self.spectrum_info['p2']['separation'])
 
                 if self.compute_p4:
-                    p4 = self.combine_pkell_spectra(bias_params, p4table[i])
                     p4_spline = interp1d(k, p4)
-                    self.spectrum_info['p4']['{}_model'.format(i)] = p0_spline(
+                    self.spectrum_info['p4']['{}_model'.format(i)] = p4_spline(
                         self.spectrum_info['p4']['separation'])
 
         # package everything up into one big model datavector
         model = []
         for t in self.spectrum_types:
             for i in range(self.ndbins):
+                if i not in self.use_samples:
+                    continue
                 if t[0] == 'p':
                     model.append(self.spectrum_info[t]['{}_model'.format(i)])
                 else:

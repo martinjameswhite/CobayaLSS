@@ -46,10 +46,6 @@ class RSDCalculator(Theory):
                 self.chiz_fid = requirements[t]['chiz_fid']
                 self.hz_fid = requirements[t]['hz_fid']
 
-            # spec type is everything before first underscore. i.e. p0/p2/p4
-            spec_type = t.split('_')[0]
-            setattr(self, 'compute_{}'.format(spec_type), True)
-
         return {'Pk_interpolator': {'k_max': 10,
                                     'z': self.z,
                                     'nonlinear': False},
@@ -61,8 +57,7 @@ class RSDCalculator(Theory):
 
     def get_can_provide(self):
 
-        return ['p0_basis_spectrum_grid', 'p2_basis_spectrum_grid',
-                'p4_basis_spectrum_grid', 'pell_kvalues']
+        return ['pt_pk_ell_model']
 
     def calculate(self, state, want_derived=True, **params_values_dict):
 
@@ -79,15 +74,11 @@ class RSDCalculator(Theory):
         aperp = (self.provider.get_angular_diameter_distance(self.z) *
                  (1 + self.z) * h) / self.chiz_fid
 
-        state['pell_kvalues'] = self.k
-
+        state['pt_pk_ell_model'] = []
         for i, z in enumerate(self.z):
             pk = pk_lin_interp.P(z, self.k)
             lpt = LPT_RSD(self.k, pk, kIR=self.kIR)
             lpt.make_pltable(f[i], nmax=self.nmax, kmin=self.kmin,
                              kmax=self.kmax, nk=self.nk,
                              apar=apar[i], aperp=aperp[i])
-
-            state['p0_basis_spectrum_grid'][i, ...] = lpt.p0ktable
-            state['p2_basis_spectrum_grid'][i, ...] = lpt.p2ktable
-            state['p4_basis_spectrum_grid'][i, ...] = lpt.p4ktable
+            state['pt_pk_ell_model'].append(lpt)
