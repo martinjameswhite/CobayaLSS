@@ -1,0 +1,49 @@
+heft: True
+datavector_info_filename: None
+zmin_proj: 0.0
+zmax_proj: 2.0
+nz_proj: 251
+nchi_proj: 101
+
+params:
+  b1_0:
+    prior:
+      dist: uniform
+      min: -0.5
+      max:  2.0
+    latex: b_1
+  b2_0:
+    value: 0.0
+    latex: b_2
+  bs_0:
+    value: 0.0
+    latex: b_s
+  bk_0: 
+    value: 0.0
+    latex: b_k
+  b3_0: 
+    value: 0.0
+    latex: b_3
+  alpha0_0: 
+    value: 0.0
+    latex: alpha_0
+  alpha2_0: 
+    value: 0.0
+    latex: alpha_2
+  alpha4_0: 
+    value: 0.0
+    latex: alpha_4
+  alpha6_0: 
+    value: 0.0
+    latex: alpha_6
+  sn_0:
+    value: 0.0
+    latex: SN_0
+  sn2_0:
+    value: 0.0
+    latex: SN_2
+  sn4_0:
+    value: 0.0
+    latex: SN_4
+    
+

@@ -89,7 +89,7 @@ class AngularPowerSpectra():
             f1f2 = self.fchi[i]*self.fchi[i]/chi**2 * Pgg(self.zval[i],kval)
             f1m2 = self.fchi[i] * fmag[i]/chi**2 * Pgm(self.zval[i],kval)
             m1f2 = fmag[i]*self.fchi[i]/chi**2 * Pgm(self.zval[i],kval)
-            m1m2 = fmag[i] * fmag[i]/chi**2 * Pmm((self.zval[i],kval)
+            m1m2 = fmag[i] * fmag[i]/chi**2 * Pmm(self.zval[i],kval)
             Cgg[:, i] = f1f2 + f1m2 + m1f2 + m1m2
             f1f2 = self.fchi[i]*self.fcmb[i]/chi**2 * Pgm(self.zval[i],kval)
             m1f2 = fmag[i]*self.fcmb[i]/chi**2 * Pmm(self.zval[i],kval)
