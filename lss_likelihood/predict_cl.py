@@ -17,19 +17,11 @@ from anzu.emu_funcs import LPTEmulator
 
 class LPTPowerSpectra():
     """Computes the (real-space) power spectrum, P(k,z) [Mpc/h units]."""
-    def combine_bias_terms_pk_crossmatter(self,b1,b2,bs,b3,alpha):
-        """A CLEFT helper function to return P_{gm}."""
-        kv  = self.cleft.pktable[:,0]
-        ret = self.cleft.pktable[:,1]+0.5*b1*self.cleft.pktable[:,2]+\
-              0.5*b2*self.cleft.pktable[:,4]+0.5*bs*self.cleft.pktable[:,7]+\
-              0.5*b3*self.cleft.pktable[:,11]+\
-              alpha*kv**2*self.cleft.pktable[:,13]
-        return(kv,ret)
-        #
     def calculate_pk(self,b1,b2,bs,b3,alpha_a,alpha_x,sn):
         """Returns k,Pgg,Pgm,Pmm using pre-computed CLEFT kernels."""
-        kk,pgg = self.cleft.combine_bias_terms_pk(b1,b2,bs,b3,alpha_a,sn)
-        kk,pgm = self.combine_bias_terms_pk_crossmatter(b1,b2,bs,b3,alpha_x)
+        cleft  = self.cleft
+        kk,pgg = cleft.combine_bias_terms_pk(b1,b2,bs,b3,alpha_a,sn)
+        kk,pgm = cleft.combine_bias_terms_pk_crossmatter(b1,b2,bs,b3,alpha_x)
         return((kk,pgg,pgm,self.cleft.pktable[:,1]))
         #
     def __init__(self,klin,plin):
