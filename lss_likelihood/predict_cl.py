@@ -46,6 +46,7 @@ class AngularPowerSpectra():
         # Normalize dN/dz.
         self.dndz = self.dndz/simps(self.dndz, x=self.zz)
         self.chistar = None
+        self.Nchi = Nchi
 
     def set_geometry(self, chiz, ez, omega_m, chistar):
         self.OmM = omega_m
@@ -75,13 +76,14 @@ class AngularPowerSpectra():
 
         #recompute kernels if cosmology changed
         if chistar != self.chistar:
-            self.setup_geometry(chiz, ez, omega_m, chistar)
+            self.set_geometry(chiz, ez, omega_m, chistar)
             self.mag_bias_kernel(smag)  # Magnification bias kernel.
 
         fmag = self.mag_kern * (5*smag-2.)
         ell = np.logspace(1, np.log10(Lmax), Nell)  # More ell's are cheap.
-        Cgg, Ckg, Ckk = np.zeros(
-            (Nell, self.Nchi)), np.zeros((Nell, self.Nchi))
+        Cgg = np.zeros((Nell, self.Nchi))
+        Ckg = np.zeros((Nell, self.Nchi))                
+        Ckk = np.zeros((Nell, self.Nchi))
 
         # Work out the integrands for C_l^{gg} and C_l^{kg}.
         for i, chi in enumerate(self.chival):

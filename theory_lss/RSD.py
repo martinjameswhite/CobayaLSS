@@ -41,16 +41,16 @@ class RSDCalculator(Theory):
 
     def must_provide(self, **requirements):
         for i, t in enumerate(requirements):
-            if i == 0:
-                self.z = requirements[t]['z']
-                self.chiz_fid = requirements[t]['chiz_fid']
-                self.hz_fid = requirements[t]['hz_fid']
+            if t=='pt_pk_ell_model':
+                self.z = np.array(requirements[t]['z'])
+                self.chiz_fid = np.array(requirements[t]['chiz_fid'])
+                self.hz_fid = np.array(requirements[t]['hz_fid'])
 
         return {'Pk_interpolator': {'k_max': 10,
                                     'z': self.z,
                                     'nonlinear': False},
                 'sigma8_z': {'z': self.z},
-                'fsigma8_z': {'z': self.z},
+                'fsigma8': {'z': self.z},
                 'Hubble': {'z': self.z},
                 'angular_diameter_distance': {'z': self.z},
                 'H0': None}
@@ -69,14 +69,15 @@ class RSDCalculator(Theory):
         f = fsigma8 / sigma8_z
 
         # AP
-        h = self.provider.get_param('H0') / 100.
-        apar = self.hz_fid/(self.provider.get_Hubble(self.z) / h)
+        H0 = self.provider.get_param('H0')
+        h = H0 / 100.
+        apar = self.hz_fid/(self.provider.get_Hubble(self.z) / H0)
         aperp = (self.provider.get_angular_diameter_distance(self.z) *
                  (1 + self.z) * h) / self.chiz_fid
 
         state['pt_pk_ell_model'] = []
         for i, z in enumerate(self.z):
-            pk = pk_lin_interp.P(z, self.k)
+            pk = pk_lin_interp.P(z, self.k * h)
             lpt = LPT_RSD(self.k, pk, kIR=self.kIR)
             lpt.make_pltable(f[i], nmax=self.nmax, kmin=self.kmin,
                              kmax=self.kmax, nk=self.nk,

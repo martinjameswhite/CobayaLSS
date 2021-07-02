@@ -1,10 +1,11 @@
 import numpy as np
 from cobaya.likelihood import Likelihood
-from cobaya.typing import Union, Sequence
+from cobaya.typing import Union, Sequence, Optional
 from cobaya.theories.cosmo import PowerSpectrumInterpolator
 from itertools import permutations, product
 from predict_cl import AngularPowerSpectra
 from scipy.interpolate import interp1d
+from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 import yaml
 
 datavector_requires = {'p0': ['z_fid', 'chiz_fid', 'hz_fid'],
@@ -46,7 +47,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                              self.zmax_proj,
                              self.nz_proj)
         self.nk = 100
-        self.k = np.logspace(-3, 1, self.nk)
+        self.k = np.logspace(-3, 0, self.nk)
         self.compute_c_kk = False
         self.compute_c_dk = False
         self.compute_c_dd = False
@@ -54,6 +55,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
         self.compute_p2 = False
         self.compute_p4 = False
         self.load_data()
+        self.setup_projection()
 
     def load_data(self):
         """Loads the required data."""
@@ -202,10 +204,10 @@ class HarmonicSpaceWLxRSD(Likelihood):
         if self.compute_cell:
 
             if self.heft:
-                reqs.update({'heft_spectrum_interpolator': self.z,
-                             'heft_spectrum_grid': self.z})
+                reqs.update({'heft_spectrum_interpolator': {'z': self.z},
+                             'heft_spectrum_grid': {'z':self.z}})
             else:
-                reqs.update({'eft_spectrum_interpolator': self.z})
+                reqs.update({'eft_spectrum_interpolator': {'z':self.z}})
 
             z = np.concatenate([self.z, [1098.]])
             reqs.update({'comoving_radial_distance': {'z': z},
@@ -275,11 +277,11 @@ class HarmonicSpaceWLxRSD(Likelihood):
         if self.compute_cell:
 
             # do I need a little h here?
-            z = np.stack(self.z, [1098.])
+            z = np.concatenate([self.z, [1098.]])
             chiz = self.provider.get_comoving_radial_distance(z)
             chistar = chiz[-1]
             chiz = chiz[:-1]
-            omega_m = self.provider.get_param('omega_m')
+            omega_m = self.provider.get_param('omegam')
 
             ez = self.provider.get_Hubble(self.z) /\
                 self.provider.get_param('H0')
@@ -296,6 +298,8 @@ class HarmonicSpaceWLxRSD(Likelihood):
             # only looping over lens bins for now, since
             # galaxy lensing, and lens x lens cross corr
             # not implemented yet
+            self.rs_power_spectra = np.zeros((self.ndbins, self.nz_proj, self.nk, 3))
+            
             for i in range(self.ndbins):
                 if i not in self.use_samples:
                     continue
@@ -308,18 +312,21 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
                 spectra = np.zeros((n_spec_cell, self.nk, self.nz_proj))
                 for j in range(n_spec_cell):
-                    spectra[j, ...] = cell_spec_interpolator[j](self.z, self.k)
+                    spectra[j, ...] = cell_spec_interpolator[j].P(self.z, self.k).T
 
                 pmm = spectra[0, ...]
                 pmm_spline = PowerSpectrumInterpolator(self.z, self.k, pmm.T)
+                self.rs_power_spectra[i,:,:,0] = pmm.T
 
                 pdm = self.combine_real_space_spectra(
                     self.k, spectra, bias_params, cross=True)
                 pdm_spline = PowerSpectrumInterpolator(self.z, self.k, pdm.T)
-
+                self.rs_power_spectra[i,:,:,1] = pdm.T
+                
                 pdd = self.combine_real_space_spectra(
                     self.k, spectra, bias_params, cross=False)
                 pdd_spline = PowerSpectrumInterpolator(self.z, self.k, pdd.T)
+                self.rs_power_spectra[i,:,:,2] = pdd.T
 
                 lval, Cdd, Cdk, Ckk = self.projection_models[i](
                     pmm_spline, pdm_spline,
@@ -328,20 +335,23 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
                 # just interpolate onto desired ell for now.
                 # need to implement windowing.
-                if self.compute_ckk:
-                    Ckk_spline = interp1d(lval, Ckk)
-                    self.spectrum_info['c_kk']['{}_0_model'.format(i)] = Ckk_spline(
-                        self.spectrum_info['c_kk']['separation'])
+                if self.compute_c_kk:
+                    Ckk_spline = interp1d(np.log10(lval), np.arcsinh(Ckk),
+                                          fill_value='extrapolate')
+                    self.spectrum_info['c_kk']['{}_0_model'.format(i)] = np.sinh(Ckk_spline(
+                        np.log10(self.spectrum_info['c_kk']['separation'])))
 
-                if self.compute_cdk:
-                    Cdk_spline = interp1d(lval, Cdk)
-                    self.spectrum_info['c_dk']['{}_0_model'.format(i)] = Cdk_spline(
-                        self.spectrum_info['c_dk']['separation'])
+                if self.compute_c_dk:
+                    Cdk_spline = interp1d(np.log10(lval), np.arcsinh(Cdk),
+                                          fill_value='extrapolate')
+                    self.spectrum_info['c_dk']['{}_0_model'.format(i)] = np.sinh(Cdk_spline(
+                        np.log10(self.spectrum_info['c_dk']['separation'])))
 
-                if self.compute_cdd:
-                    Cdd_spline = interp1d(lval, Cdd)
-                    self.spectrum_info['c_dd']['{}_0_model'.format(i)] = Cdd_spline(
-                        self.spectrum_info['c_dd']['separation'])
+                if self.compute_c_dd:
+                    Cdd_spline = interp1d(np.log10(lval), np.arcsinh(Cdd),
+                                          fill_value='extrapolate')
+                    self.spectrum_info['c_dd']['{}_0_model'.format(i)] = np.sinh(Cdd_spline(
+                        np.log10(self.spectrum_info['c_dd']['separation'])))
 
         if self.compute_pell:
 
@@ -363,7 +373,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
                 sn = params_values['sn_{}'.format(i)]
                 sn2 = params_values['sn2_{}'.format(i)]
-                sn3 = params_values['sn4_{}'.format(i)]
+                sn4 = params_values['sn4_{}'.format(i)]
 
                 bias_params = [b1, b2, bs, b3, alpha0, alpha2, alpha4,
                                alpha6, sn, sn2, sn4]
@@ -372,20 +382,31 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 # need to implement window/wide angle stuff still.
                 lpt = pt_models[i]
                 k, p0, p2, p4 = lpt.combine_bias_terms_pkell(bias_params)
+
+                if not hasattr(self, 'pkell_spectra'):
+                    self.pkell_spectra = np.zeros((self.ndbins, len(k), 3))
+
+                self.pkell_spectra[i,:,0] = p0
+                self.pkell_spectra[i,:,1] = p2
+                self.pkell_spectra[i,:,2] = p4                
+                                              
                 if self.compute_p0:
-                    p0_spline = interp1d(k, p0)
-                    self.spectrum_info['p0']['{}_model'.format(i)] = p0_spline(
-                        self.spectrum_info['p0']['separation'])
+                    p0_spline = interp1d(np.log10(k), np.arcsinh(p0),
+                                         fill_value='extrapolate')
+                    self.spectrum_info['p0']['{}_model'.format(i)] = np.sinh(p0_spline(
+                        np.log10(self.spectrum_info['p0']['separation'])))
 
                 if self.compute_p2:
-                    p2_spline = interp1d(k, p2)
-                    self.spectrum_info['p2']['{}_model'.format(i)] = p2_spline(
-                        self.spectrum_info['p2']['separation'])
+                    p2_spline = interp1d(np.log10(k), np.arcsinh(p2),
+                                         fill_value='extrapolate')
+                    self.spectrum_info['p2']['{}_model'.format(i)] = np.sinh(p2_spline(
+                        np.log10(self.spectrum_info['p2']['separation'])))
 
                 if self.compute_p4:
-                    p4_spline = interp1d(k, p4)
-                    self.spectrum_info['p4']['{}_model'.format(i)] = p4_spline(
-                        self.spectrum_info['p4']['separation'])
+                    p4_spline = interp1d(np.log10(k), np.arcsinh(p4),
+                                         fill_value='extrapolate')
+                    self.spectrum_info['p4']['{}_model'.format(i)] = np.sinh(p4_spline(
+                        np.log10(self.spectrum_info['p4']['separation'])))
 
         # package everything up into one big model datavector
         model = []

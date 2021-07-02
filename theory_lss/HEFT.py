@@ -73,33 +73,81 @@ class HEFTCalculator(Theory):
 
         reqs = {}
 
-        if (('eft_spectrum_grid' in requirements) | ('eft_spectrum_interpolator' in requirements)
-            | ('heft_spectrum_grid' in requirements) | ('heft_spectrum_interpolator' in requirements)):
-
-            if 'z' in requirements['heft_spectrum_interpolator']:
+        if 'heft_spectrum_interpolator' in requirements:
+            if requirements['heft_spectrum_interpolator'] is None:
+                zs = self.z
+            elif 'z' in requirements['heft_spectrum_interpolator']:
                 zs = requirements['heft_spectrum_interpolator']['z']
+                self.z = zs
+                self.nz = len(self.z)
             else:
                 zs = self.z
-                
+
+            self.get_heft_interpolator = True
+            reqs = {'Pk_interpolator': {'k_max': 10,
+                                        'z': zs,
+                                        'nonlinear': False},
+                    'sigma8_z': {'z': zs},
+                    'Hubble': {'z': [0.0]}}
+            reqs.update({'ombh2': None, 'omch2': None, 'w': None,
+                         'ns': None, 'sigma8': None, 'H0': None,
+                         'N_eff': None})
+            
+        elif 'eft_spectrum_interpolator' in requirements:
+
+            if requirements['eft_spectrum_interpolator'] is None:
+                zs = self.z
+            elif 'z' in requirements['eft_spectrum_interpolator']:
+                zs = requirements['eft_spectrum_interpolator']['z']
+                self.z = zs
+                self.nz = len(self.z)
+            else:
+                zs = self.z
+
+            self.get_eft_interpolator = True
             reqs = {'Pk_interpolator': {'k_max': 10,
                                         'z': zs,
                                         'nonlinear': False},
                     'sigma8_z': {'z': zs},
                     'Hubble': {'z': [0.0]}}
 
-        if 'eft_spectrum_interpolator' in requirements:
-            self.get_eft_interpolator = True
+        elif 'heft_spectrum_grid' in requirements:
 
-        if (('heft_spectrum_grid' in requirements)
-                | ('heft_spectrum_interpolator' in requirements)):
+            if requirements['heft_spectrum_grid'] is None:
+                zs = self.z
+            elif 'z' in requirements['heft_spectrum_grid']:
+                zs = requirements['heft_spectrum_grid']['z']
+                self.z = zs
+                self.nz = len(self.z)
+            else:
+                zs = self.z
 
+            reqs = {'Pk_interpolator': {'k_max': 10,
+                                        'z': zs,
+                                        'nonlinear': False},
+                    'sigma8_z': {'z': zs},
+                    'Hubble': {'z': [0.0]}}
             reqs.update({'ombh2': None, 'omch2': None, 'w': None,
-                         'ns': None, 'sigma8': None, 'H0': None,
-                         'N_eff': None})
+                            'ns': None, 'sigma8': None, 'H0': None,
+                            'N_eff': None})            
+            
+        elif 'eft_spectrum_grid' in requirements:
 
-        if 'heft_spectrum_interpolator' in requirements:
-            self.get_heft_interpolator = True
+            if requirements['eft_spectrum_grid'] is None:
+                zs = self.z
+            elif 'z' in requirements['eft_spectrum_grid']:
+                zs = requirements['eft_spectrum_grid']['z']
+                self.z = zs
+                self.nz = len(self.z)
+            else:
+                zs = self.z
 
+            reqs = {'Pk_interpolator': {'k_max': 10,
+                                        'z': zs,
+                                        'nonlinear': False},
+                    'sigma8_z': {'z': zs},
+                    'Hubble': {'z': [0.0]}}
+            
         return reqs
 
     def get_can_provide(self):
@@ -130,7 +178,7 @@ class HEFTCalculator(Theory):
 
         else:
             for i, z in enumerate(self.z):
-                pk = pk_lin_interp.P(z, self.k)
+                pk = pk_lin_interp.P(z, self.k * h)
                 cleftobj = CLEFT(self.k, pk, N=2700, jn=10, cutoff=1)
                 cleftobj.make_ptable()
                 cleftpk = cleftobj.pktable[:, 1:self.nspec+1].T
@@ -144,10 +192,10 @@ class HEFTCalculator(Theory):
                 cleftpk[:, 2:] = cleftobj.pktable[:, 4:self.nspec+1].T
                 state['eft_spectrum_grid'][i, ...] = cleftpk
 
-        state['eft_spectrum_grid'][1, ...] /= 2
-        state['eft_spectrum_grid'][5, ...] /= 0.25
-        state['eft_spectrum_grid'][6, ...] /= 2
-        state['eft_spectrum_grid'][7, ...] /= 2
+        state['eft_spectrum_grid'][:, 1, :] /= 2
+        state['eft_spectrum_grid'][:, 5, :] /= 0.25
+        state['eft_spectrum_grid'][:, 6, :] /= 2
+        state['eft_spectrum_grid'][:, 7, :] /= 2
 
         self.eft_spectrum_grid = state['eft_spectrum_grid']
 
@@ -183,3 +231,4 @@ class HEFTCalculator(Theory):
                     state['heft_spectrum_interpolator'].append(PowerSpectrumInterpolator(self.z,
                                                                                          self.k,
                                                                                          state['heft_spectrum_grid'][:, i, :]))
+

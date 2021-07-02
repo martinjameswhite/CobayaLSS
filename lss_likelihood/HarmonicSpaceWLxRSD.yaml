@@ -2,7 +2,7 @@ heft: True
 datavector_info_filename: None
 zmin_proj: 0.0
 zmax_proj: 2.0
-nz_proj: 251
+nz_proj: 21
 nchi_proj: 101
 
 params:
