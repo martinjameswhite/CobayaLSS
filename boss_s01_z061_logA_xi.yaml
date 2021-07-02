@@ -58,7 +58,7 @@ params:
       max:  3.0
     ref:
       dist:  norm
-      loc:   1.75
+      loc:   1.60
       scale: 0.05
     latex: (1+b_1)\sigma_8
   b2:
