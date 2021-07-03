@@ -348,6 +348,7 @@ class PT_pk_theory(Theory):
                       import_wisdom=False,\
                       kmin=1e-4,kmax=0.5,nk=200,cutoff=10,\
                       extrap_min=-4,extrap_max=3,N=2000,jn=10)
+        modPT.zfid     = self.zfid
         modPT.chiz_fid = self.chiz_fid
         modPT.Hz_fid   = self.Hz_fid
         #
