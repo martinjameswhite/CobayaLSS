@@ -132,8 +132,6 @@ class PkLikelihood(Likelihood):
     mcut:  float
     qcut:  float
     zfid:  float
-    chiz_fid: float
-    Hz_fid: float
     #
     def initialize(self):
         """Sets up the class."""
@@ -215,7 +213,7 @@ class PkLikelihood(Likelihood):
         # Work out the A-P scaling to the fiducial cosmology.
         Hz   = pp.get_Hubble(self.zfid)[0]/pp.get_Hubble(0)[0]
         chiz = pp.get_comoving_radial_distance(self.zfid)[0]*hub
-        apar,aperp = self.Hz_fid/Hz,chiz/self.chiz_fid
+        apar,aperp = modPT.Hz_fid/Hz,chiz/modPT.chiz_fid
         # Call the PT model to get P_ell -- we'll grid it onto the
         # appropriate binning for the window function in observe.
         kv,p0,p2,p4=modPT.compute_redshift_space_power_multipoles(bpars,\
@@ -348,7 +346,11 @@ class PT_pk_theory(Theory):
         modPT = MomentExpansion(ki,pi,beyond_gauss=False,\
                       one_loop=True,shear=True,\
                       import_wisdom=False,\
-                      kmin=1e-4,kmax=0.5,nk=200,cutoff=10,\
-                      extrap_min=-4,extrap_max=3,N=2000,jn=10)
+                      kmin=5e-4,kmax=0.5,nk=100,cutoff=10,\
+                      extrap_min=-4,extrap_max=3,N=2000,jn=5)
+        # Pass the AP-necessary parameters back as well.
+        modPT.chiz_fid = self.chiz_fid
+        modPT.Hz_fid   = self.Hz_fid
+        #
         state['pt_pk_ell_mod'] = modPT
         #
