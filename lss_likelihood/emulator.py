@@ -5,25 +5,16 @@ import json
 
 class Emulator(object):
 
-    def __init__(self, n_params, nks, W=None, b=None, alpha=None, beta=None, pc_sigmas=None,
-                 pc_mean=None, v=None, fstd=None, mean=None, sigmas=None, n_components=20):
+    def __init__(self, filebase, kmin=1e-3, kmax=1)
         super(Emulator, self).__init__()
 
-        self.n_parameters = n_params
-        self.n_components = n_components
-        self.nks = nks
+        self.load(filebase)
 
-        self.W = W
-        self.b = b
-        self.alphas = alpha
-        self.betas = beta
-        self.pc_sigmas = pc_sigmas
-        self.pc_mean = pc_mean
-        self.v = v
-        self.sigmas = sigmas
-        self.mean = mean
-        self.fstd = fstd
+        self.n_parameters = self.W[0].shape[0]
+        self.n_components = self.W[-1].shape[-1]
         self.n_layers = len(self.W)
+        self.nk = self.sigmas.shape[0]
+        self.k = np.logspace(np.log10(kmin), np.log10(kmax), self.nk)
 
     def load(self, filebase):
 
@@ -94,4 +85,4 @@ class Emulator(object):
         x = np.sinh((x @ self.v[:, :self.n_components].T)
                     * self.sigmas + self.mean) * self.fstd
 
-        return x
+        return self.k, x
