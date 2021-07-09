@@ -5,7 +5,7 @@ import json
 
 class Emulator(object):
 
-    def __init__(self, filebase, kmin=1e-3, kmax=1)
+    def __init__(self, filebase, kmin=1e-3, kmax=1):
         super(Emulator, self).__init__()
 
         self.load(filebase)
@@ -25,18 +25,18 @@ class Emulator(object):
 
         with open('{}_b.json'.format(filebase), 'r') as fp:
             self.b = json.load(fp)
-            for bi in self.b:
-                bi = np.array(bi).astype(np.float32)
+            for i, bi in enumerate(self.b):
+                self.b[i] = np.array(bi).astype(np.float32)
 
         with open('{}_alphas.json'.format(filebase), 'r') as fp:
             self.alphas = json.load(fp)
-            for ai in self.alphas:
-                ai = np.array(ai).astype(np.float32)
+            for i, ai in enumerate(self.alphas):
+                self.alphas[i] = np.array(ai).astype(np.float32)
 
         with open('{}_betas.json'.format(filebase), 'r') as fp:
             self.betas = json.load(fp)
-            for bi in self.betas:
-                bi = np.array(bi).astype(np.float32)
+            for i, bi in enumerate(self.betas):
+                self.betas[i] = np.array(bi).astype(np.float32)
 
         with open('{}_pc_mean.json'.format(filebase), 'r') as fp:
             self.pc_mean = np.array(json.load(fp)).astype(np.float32)
@@ -68,7 +68,7 @@ class Emulator(object):
     def __call__(self, parameters):
 
         outputs = []
-        x = (parameters - self.param_mean) * self.param_sigmas
+        x = (parameters - self.param_mean) / self.param_sigmas
 
         for i in range(self.n_layers - 1):
 
