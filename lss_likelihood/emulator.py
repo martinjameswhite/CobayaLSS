@@ -68,7 +68,7 @@ class Emulator(object):
     def __call__(self, parameters):
 
         outputs = []
-        x = (parameters - self.param_mean) * self.param_sigmas
+        x = (parameters - self.param_mean) / self.param_sigmas
 
         for i in range(self.n_layers - 1):
 
