@@ -35,6 +35,7 @@ class GxKLikelihood(Likelihood):
         self.PmmEmu = Emulator(self.Pmmfn)
     def get_requirements(self):
         """What we require."""
+        zgrid= np.logspace(0,3.1,128) - 1.0
         reqs = {\
                'logA':     None,\
                'omch2':    None,\
@@ -42,6 +43,8 @@ class GxKLikelihood(Likelihood):
                'H0':       None,\
                'ns':       None,\
                'omegam':   None,\
+               'Hubble':   {'z': zgrid},\
+               'comoving_radial_distance': {'z': zgrid}\
                }
         # Build the parameter names we require for each sample.
         for suf in self.suffx:
