@@ -27,32 +27,6 @@ class AngularPowerSpectra():
         fac[singular] = 1.0
         return(fac.prod(axis=-1))
         #
-    def T_AK(self,x):
-        """The "T" function of Adachi & Kasai (2012), used below."""
-        b1,b2,b3=2.64086441,0.883044401,0.0531249537
-        c1,c2,c3=1.39186078,0.512094674,0.0394382061
-        x3   = x**3
-        x6   = x3*x3
-        x9   = x3*x6
-        tmp  = 2+b1*x3+b2*x6+b3*x9
-        tmp /= 1+c1*x3+c2*x6+c3*x9
-        tmp *= x**0.5
-        return(tmp)
-        #
-    def chi_of_z(self,zz):
-        """The comoving distance to redshift zz, in Mpc/h.
-           Uses the Pade approximate of Adachi & Kasai (2012) to compute chi
-           for a LCDM model, ignoring massive neutrinos."""
-        s_ak = (self.OmX/self.OmM)**0.3333333
-        tmp  = self.T_AK(s_ak)-self.T_AK(s_ak/(1+zz))
-        tmp *= 2997.925/(s_ak*self.OmM)**0.5
-        return(tmp)
-        #
-    def E_of_z(self,zz):
-        """The dimensionless Hubble parameter at zz."""
-        Ez = (self.OmM*(1+zz)**3 + self.OmX)**0.5
-        return(Ez)
-        #
     def mag_bias_kernel(self,s,Nchi_mag=101):
         """Returns magnification bias kernel if 's' is the slope of
            the number counts dlog10N/dm."""
@@ -74,7 +48,7 @@ class AngularPowerSpectra():
         Cshot = self.fchi**2/self.chival**2
         Cshot = simps(Cshot,x=self.chival)
         return(Cshot)
-    def __init__(self,OmM,dndz,Nchi=101,Nz=251):
+    def __init__(self,OmM,chi_of_z,E_of_z,dndz,Nchi=101,Nz=251):
         """Set up the class.
             OmM:  The value of Omega_m(z=0) for the cosmology.
             dndz: A numpy array (Nbin,2) containing dN/dz vs. z."""
@@ -90,17 +64,17 @@ class AngularPowerSpectra():
         # Normalize dN/dz.
         self.dndz = self.dndz/simps(self.dndz,x=self.zz)
         # Set up the chi(z) array and z(chi) spline.
-        self.chiz = np.array([self.chi_of_z(z) for z in self.zz])
+        self.chiz = chi_of_z(self.zz)
         self.zchi = Spline(self.chiz,self.zz)
         # Work out W(chi) for the objects whose dNdz is supplied.
         chimin    = np.min(self.chiz) + 1e-5
         chimax    = np.max(self.chiz)
         self.chival= np.linspace(chimin,chimax,self.Nchi)
         zval      = self.zchi(self.chival)
-        self.fchi = Spline(self.zz,self.dndz*self.E_of_z(self.zz))(zval)
+        self.fchi = Spline(self.zz,self.dndz*E_of_z(self.zz))(zval)
         self.fchi/= simps(self.fchi,x=self.chival)
         # and W(chi) for the CMB
-        self.chistar= self.chi_of_z(1098.)
+        self.chistar= chi_of_z(1098.)
         self.fcmb = 1.5*self.OmM*(1.0/2997.925)**2*(1+zval)
         self.fcmb*= self.chival*(self.chistar-self.chival)/self.chistar
         # Compute the effective redshift.
