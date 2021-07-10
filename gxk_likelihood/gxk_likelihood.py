@@ -35,7 +35,7 @@ class GxKLikelihood(Likelihood):
         self.PmmEmu = Emulator(self.Pmmfn)
     def get_requirements(self):
         """What we require."""
-        zgrid= np.logspace(0,3.1,128) - 1.0
+        zgrid= np.logspace(0,3.1,64) - 1.0
         reqs = {\
                'logA':     None,\
                'omch2':    None,\
@@ -59,11 +59,11 @@ class GxKLikelihood(Likelihood):
         OmM = pp.get_param('omegam')
         hub = pp.get_param('H0')/100.0
         # Make splines for chi(z) and E(z), converting to Mpc/h.
-        zgrid = np.logspace(0,3.1,128)-1.0 # Must start at 0.
+        zgrid = np.logspace(0,3.1,64)-1.0
         chiz  = pp.get_comoving_radial_distance(zgrid)*hub
         chiz  = Spline(zgrid,chiz)
         Eofz  = pp.get_Hubble(zgrid)
-        Eofz  = Spline(zgrid,Eofz/Eofz[0])
+        Eofz  = Spline(zgrid,Eofz/(100*hub))
         #
         obs = np.array([],dtype='float')
         for i,suf in enumerate(self.suffx):
