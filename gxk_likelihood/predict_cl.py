@@ -86,9 +86,11 @@ class AngularPowerSpectra():
         fmag   = self.mag_bias_kernel(smag) # Magnification bias kernel.
         ell    = np.logspace(1,np.log10(Lmax),Nell) # More ell's are cheap.
         Cgg,Ckg= np.zeros( (Nell,self.Nchi) ),np.zeros( (Nell,self.Nchi) )
-        Pgg    = Spline(*PggEmu(pk_pars+[self.zeff]))     # Extrapolates.
-        Pgm    = Spline(*PgmEmu(pk_pars+[self.zeff]))     # Extrapolates.
-        Pmm    = Spline(*PmmEmu(pk_pars[:6]+[self.zeff])) # Extrapolates.
+        pars   = np.array(pk_pars+[self.zeff])
+        Pgg    = Spline(*PggEmu(pars))     # Extrapolates.
+        Pgm    = Spline(*PgmEmu(pars))     # Extrapolates.
+        pars   = np.array(pk_pars[:6]+[self.zeff])
+        Pmm    = Spline(*PmmEmu(pars))     # Extrapolates.
         # Work out the integrands for C_l^{gg} and C_l^{kg}.
         for i,chi in enumerate(self.chival):
             kval     = (ell+0.5)/chi        # The vector of k's.
