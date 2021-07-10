@@ -2,7 +2,7 @@ import numpy as np
 import sys
 import os
 
-
+from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 from emulator          import Emulator
 from predict_cl        import AngularPowerSpectra
 from cobaya.likelihood import Likelihood
@@ -57,9 +57,16 @@ class GxKLikelihood(Likelihood):
         """Return the log-likelihood."""
         pp  = self.provider
         OmM = pp.get_param('omegam')
+        # Make splines for chi(z) and E(z).
+        zgrid = np.logspace(0,3.1,128)-1.0 # Must start at 0.
+        chiz  = pp.comoving_radial_distance(zgrid)
+        chiz  = Spline(zgrid,chiz)
+        Eofz  = pp.get_Hubble(zgrid)
+        Eofz  = Spline(zgrid,Eofz/Eofz[0])
+        #
         obs = np.array([],dtype='float')
         for i,suf in enumerate(self.suffx):
-            aps = AngularPowerSpectra(OmM,self.dndz[i])
+            aps = AngularPowerSpectra(OmM,chiz,Eofz,self.dndz[i])
             # Fill in the parameter list, starting with the
             # cosmological parameters.
             pars = [pp.get_param('logA'),\
