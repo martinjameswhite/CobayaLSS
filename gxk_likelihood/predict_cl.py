@@ -36,7 +36,7 @@ class AngularPowerSpectra():
         chivalp = np.array(list(map(zupper,self.chival))).transpose()
         zvalp   = self.zchi(chivalp)
         dndz_n  = np.interp(zvalp,self.zz,self.dndz,left=0,right=0)
-        Ez      = self.E_of_z(zvalp)
+        Ez      = self.Eofz(zvalp)
         g       = (chivalp-self.chival[np.newaxis,:])/chivalp
         g      *= dndz_n*Ez/2997.925
         g       = self.chival * simps(g,x=chivalp,axis=0)
@@ -53,7 +53,7 @@ class AngularPowerSpectra():
             OmM:  The value of Omega_m(z=0) for the cosmology.
             dndz: A numpy array (Nbin,2) containing dN/dz vs. z."""
         # Copy the arguments, setting up the z-range.
-        self.pofk = None
+        self.Eofz = E_of_z
         self.Nchi = Nchi
         self.OmM  = OmM
         self.OmX  = 1.0-OmM
@@ -69,7 +69,7 @@ class AngularPowerSpectra():
         # Work out W(chi) for the objects whose dNdz is supplied.
         chimin    = np.min(self.chiz) + 1e-5
         chimax    = np.max(self.chiz)
-        self.chival= np.linspace(chimin,chimax,self.Nchi)
+        self.chival= np.linspace(chimin,chimax,Nchi)
         zval      = self.zchi(self.chival)
         self.fchi = Spline(self.zz,self.dndz*E_of_z(self.zz))(zval)
         self.fchi/= simps(self.fchi,x=self.chival)
