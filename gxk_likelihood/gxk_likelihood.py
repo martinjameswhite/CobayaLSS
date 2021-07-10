@@ -57,9 +57,10 @@ class GxKLikelihood(Likelihood):
         """Return the log-likelihood."""
         pp  = self.provider
         OmM = pp.get_param('omegam')
-        # Make splines for chi(z) and E(z).
+        hub = pp.get_param('H0')/100.0
+        # Make splines for chi(z) and E(z), converting to Mpc/h.
         zgrid = np.logspace(0,3.1,128)-1.0 # Must start at 0.
-        chiz  = pp.comoving_radial_distance(zgrid)
+        chiz  = pp.get_comoving_radial_distance(zgrid)*hub
         chiz  = Spline(zgrid,chiz)
         Eofz  = pp.get_Hubble(zgrid)
         Eofz  = Spline(zgrid,Eofz/Eofz[0])
