@@ -3,10 +3,12 @@ from cobaya.likelihood import Likelihood
 from cobaya.typing import Union, Sequence, Optional
 from cobaya.theories.cosmo import PowerSpectrumInterpolator
 from itertools import permutations, product
-from predict_cl import AngularPowerSpectra
 from scipy.interpolate import interp1d
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 import yaml
+
+from emulator import Emulator
+from predict_cl import AngularPowerSpectra
 
 datavector_requires = {'p0': ['z_fid', 'chiz_fid', 'hz_fid'],
                        'p2': ['z_fid', 'chiz_fid', 'hz_fid'],
@@ -24,6 +26,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
     zmax_proj: float
     nz_proj: int
     nchi_proj: int
+    emulator_weights: Optional[Dict[str, str]]
     use_samples: Optional[Union[Sequence, np.ndarray]]
 
     # k = convergence
@@ -38,8 +41,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
 #                           'c_dk': ['window_dk', 'nz_d', 'ell_min', 'ell_max'],
 #                           'c_gd': ['window_dd', 'nz_d', 'ell_min', 'ell_max']}
 
-    #ignore scale cuts and windows for now
-
+    # ignore scale cuts and windows for now
 
     def initialize(self):
         """Sets up the class."""
@@ -68,7 +70,8 @@ class HarmonicSpaceWLxRSD(Likelihood):
         # (e.g. p0), redshift bin number for each sample being
         # correlated, separation values (e.g. k, ell, etc.), and
         # actual values for the spectra/correlation functions
-        dt = np.dtype([('spectrum_type','U10'), ('zbin0', np.int), ('zbin1', np.int), ('separation', np.float), ('value', np.float)])
+        dt = np.dtype([('spectrum_type', 'U10'), ('zbin0', np.int),
+                       ('zbin1', np.int), ('separation', np.float), ('value', np.float)])
 
         self.spectra = np.genfromtxt(datavector_info['spectra_filename'],
                                      names=True, dtype=dt)
@@ -118,15 +121,17 @@ class HarmonicSpaceWLxRSD(Likelihood):
             if r in ['z_fid', 'chiz_fid', 'hz_fid']:
                 setattr(self, r, datavector_info[r])
             else:
-                setattr(self, r, np.genfromtxt(datavector_info[r], dtype=None, names=True))
+                setattr(self, r, np.genfromtxt(
+                    datavector_info[r], dtype=None, names=True))
 
         # Always need a covariance matrix. This should be a text file
         # with columns specifying the two data vector types, and four redshift
         # bin indices for each element, as well as a column for the elements
         # themselves
-        dt = np.dtype([('spectrum_type0','U10'), ('spectrum_type1','U10'), ('zbin00', np.int),
-                  ('zbin01', np.int), ('zbin10', np.int), ('zbin11', np.int), ('value', np.float)])
-        cov_raw = np.genfromtxt(datavector_info['covariance_filename'], names=True, dtype=dt)
+        dt = np.dtype([('spectrum_type0', 'U10'), ('spectrum_type1', 'U10'), ('zbin00', np.int),
+                       ('zbin01', np.int), ('zbin10', np.int), ('zbin11', np.int), ('value', np.float)])
+        cov_raw = np.genfromtxt(
+            datavector_info['covariance_filename'], names=True, dtype=dt)
 
         self.cov = np.zeros((self.n_dv, self.n_dv))
 
@@ -157,12 +162,12 @@ class HarmonicSpaceWLxRSD(Likelihood):
                        (self.spectra['zbin0'] == zb10) & \
                        (self.spectra['zbin1'] == zb11)
 
-                covidx = (((cov_raw['spectrum_type0'] == t0) & \
-                         (cov_raw['zbin00'] == zb00) & \
-                         (cov_raw['zbin01'] == zb01) & \
-                         (cov_raw['spectrum_type1'] == t1) & \
-                         (cov_raw['zbin10'] == zb10) & \
-                         (cov_raw['zbin11'] == zb11))) #|
+                covidx = (((cov_raw['spectrum_type0'] == t0) &
+                           (cov_raw['zbin00'] == zb00) &
+                           (cov_raw['zbin01'] == zb01) &
+                           (cov_raw['spectrum_type1'] == t1) &
+                           (cov_raw['zbin10'] == zb10) &
+                           (cov_raw['zbin11'] == zb11)))  # |
 #                          ((cov_raw['spectrum_type0'] == t0) & \
 #                         (cov_raw['zbin00'] == zb00) & \
 #                         (cov_raw['zbin01'] == zb01) & \
@@ -180,6 +185,26 @@ class HarmonicSpaceWLxRSD(Likelihood):
             spec_type_counter.extend(permutations((t0, t1)))
 
         self.cinv = np.linalg.inv(self.cov)
+
+        # check if we have emulators for these statistics
+        if hasattr(self, 'emulator_weights'):
+            self.emulators = {}
+            for stat in self.emulator_weights:
+                # Only need one emulator per real space
+                # stat.
+                if stat in ['p_mm', 'p_dm', 'p_dd']:
+                    emu_path = self.emulator_weights[stat]
+                    emu = Emulator(emu_path)
+                    self.emulators[stat] = emu
+                    self.cell_emulators = True
+
+                elif stat in ['p0', 'p2', 'p4']:
+                    self.emulators[stat] = []
+                    for i in range(self.spectrum_info[stat]['nbins0']):
+                        emu_path = self.emulator_weights[stat][i]
+                        emu = Emulator(emu_path)
+                        self.emulators[stat].append(emu)
+                    self.pell_emulators = True
 
     def setup_projection(self):
 
@@ -202,12 +227,16 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
         reqs = {}
         if self.compute_cell:
-
-            if self.heft:
-                reqs.update({'heft_spectrum_interpolator': {'z': self.z},
-                             'heft_spectrum_grid': {'z':self.z}})
+            if not self.cell_emulators:
+                if self.heft:
+                    reqs.update({'heft_spectrum_interpolator': {'z': self.z},
+                                 'heft_spectrum_grid': {'z': self.z}})
+                else:
+                    reqs.update({'eft_spectrum_interpolator': {'z': self.z}})
             else:
-                reqs.update({'eft_spectrum_interpolator': {'z':self.z}})
+                reqs.update('logA': None, 'ns': None,
+                            'H0': None, 'w': None,
+                            'ombh2': None, 'omch2': None)
 
             z = np.concatenate([self.z, [1098.]])
             reqs.update({'comoving_radial_distance': {'z': z},
@@ -216,11 +245,15 @@ class HarmonicSpaceWLxRSD(Likelihood):
                          'omegam': None})
 
         if self.compute_pell:
-
-            reqs['pt_pk_ell_model'] = {}
-            reqs['pt_pk_ell_model']['z'] = self.z_fid
-            reqs['pt_pk_ell_model']['chiz_fid'] = self.chiz_fid
-            reqs['pt_pk_ell_model']['hz_fid'] = self.hz_fid
+            if not self.pell_emulators:
+                reqs['pt_pk_ell_model'] = {}
+                reqs['pt_pk_ell_model']['z'] = self.z_fid
+                reqs['pt_pk_ell_model']['chiz_fid'] = self.chiz_fid
+                reqs['pt_pk_ell_model']['hz_fid'] = self.hz_fid
+            else:
+                reqs.update('logA': None, 'ns': None,
+                            'H0': None, 'w': None,
+                            'ombh2': None, 'omch2': None)
 
         return reqs
 
@@ -286,20 +319,27 @@ class HarmonicSpaceWLxRSD(Likelihood):
             ez = self.provider.get_Hubble(self.z) /\
                 self.provider.get_param('H0')
 
-            if self.heft:
-                cell_spec_interpolator = self.provider.get_result(
-                    'heft_spectrum_interpolator')
-            else:
-                cell_spec_interpolator = self.provider.get_result(
-                    'eft_spectrum_interpolator')
+            if not self.emulate_cell:
+                if self.heft:
+                    cell_spec_interpolator = self.provider.get_result(
+                        'heft_spectrum_interpolator')
+                else:
+                    cell_spec_interpolator = self.provider.get_result(
+                        'eft_spectrum_interpolator')
 
-            n_spec_cell = len(cell_spec_interpolator)
+                n_spec_cell = len(cell_spec_interpolator)
+                self.rs_power_spectra = np.zeros(
+                    (self.ndbins, self.nz_proj, self.nk, 3))
+            else:
+                cosmo_params = [self.provider.get_param(p) for p in
+                                ['logA', 'ns', 'H0', 'w', 'ombh2', 'omch2']]
+
+                self.rs_power_spectra = np.zeros(
+                    (self.ndbins, self.nz_proj, self.emulators['p_mm'].nk, 3))
 
             # only looping over lens bins for now, since
             # galaxy lensing, and lens x lens cross corr
             # not implemented yet
-            self.rs_power_spectra = np.zeros((self.ndbins, self.nz_proj, self.nk, 3))
-            
             for i in range(self.ndbins):
                 if i not in self.use_samples:
                     continue
@@ -309,24 +349,45 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 bk = params_values['bk_{}'.format(i)]
                 sn = params_values['sn_{}'.format(i)]
                 bias_params = [b1, b2, bs, bk, sn]
+                if not self.emulate_cells:
 
-                spectra = np.zeros((n_spec_cell, self.nk, self.nz_proj))
-                for j in range(n_spec_cell):
-                    spectra[j, ...] = cell_spec_interpolator[j].P(self.z, self.k).T
+                    spectra = np.zeros((n_spec_cell, self.nk, self.nz_proj))
+                    for j in range(n_spec_cell):
+                        spectra[j, ...] = cell_spec_interpolator[j].P(
+                            self.z, self.k).T
 
-                pmm = spectra[0, ...]
-                pmm_spline = PowerSpectrumInterpolator(self.z, self.k, pmm.T)
-                self.rs_power_spectra[i,:,:,0] = pmm.T
+                    pmm = spectra[0, ...]
+                    pdm = self.combine_real_space_spectra(
+                        self.k, spectra, bias_params, cross=True)
+                    pdd = self.combine_real_space_spectra(
+                        self.k, spectra, bias_params, cross=False)
+                    k = self.k
+                else:
+                    params = cosmo_params + bias_params
 
-                pdm = self.combine_real_space_spectra(
-                    self.k, spectra, bias_params, cross=True)
-                pdm_spline = PowerSpectrumInterpolator(self.z, self.k, pdm.T)
-                self.rs_power_spectra[i,:,:,1] = pdm.T
-                
-                pdd = self.combine_real_space_spectra(
-                    self.k, spectra, bias_params, cross=False)
-                pdd_spline = PowerSpectrumInterpolator(self.z, self.k, pdd.T)
-                self.rs_power_spectra[i,:,:,2] = pdd.T
+                    cparam_grid = np.zeros(len(self.z), len(cosmo_params)+1)
+                    param_grid = np.zeros(len(self.z), len(params)+1)
+
+                    params = np.array(params)
+                    cosmo_params = np.array(params)
+
+                    cparam_grid[:, :-1] = cosmo_params
+                    param_grid[:, :-1] = params
+                    cparam_grid[:, -1] = self.z
+                    param_grid[:, -1] = self.z
+
+                    k, pmm = self.emulators['p_mm'](cparam_grid)
+                    k, pdm = self.emulators['p_dm'](param_grid)
+                    k, pdd = self.emulators['p_dd'](param_grid)
+
+                pmm_spline = PowerSpectrumInterpolator(self.z, k, pmm.T)
+                self.rs_power_spectra[i, :, :, 0] = pmm.T
+
+                pdm_spline = PowerSpectrumInterpolator(self.z, k, pdm.T)
+                self.rs_power_spectra[i, :, :, 1] = pdm.T
+
+                pdd_spline = PowerSpectrumInterpolator(self.z, k, pdd.T)
+                self.rs_power_spectra[i, :, :, 2] = pdd.T
 
                 lval, Cdd, Cdk, Ckk = self.projection_models[i](
                     pmm_spline, pdm_spline,
@@ -355,7 +416,8 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
         if self.compute_pell:
 
-            pt_models = self.provider.get_result(
+            if not self.pell_emulators:
+                pt_models = self.provider.get_result(
                     'pt_pk_ell_model')
 
             for i in range(self.ndbins):
@@ -380,16 +442,29 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
                 # compute multipoles and interpolate onto desired k values
                 # need to implement window/wide angle stuff still.
-                lpt = pt_models[i]
-                k, p0, p2, p4 = lpt.combine_bias_terms_pkell(bias_params)
+                if not self.pell_emulators:
+                    lpt = pt_models[i]
+                    k, p0, p2, p4 = lpt.combine_bias_terms_pkell(bias_params)
+                else:
+                    params = cosmo_params + bias_params
+
+                    param_grid = np.zeros(len(self.z), len(params)+1)
+
+                    params = np.array(params)
+                    param_grid[:, :-1] = params
+                    param_grid[:, -1] = self.z
+
+                    k, p0 = self.emulators['p0'][i](param_grid)
+                    k, p2 = self.emulators['p2'][i](param_grid)
+                    k, p4 = self.emulators['p4'][i](param_grid)
 
                 if not hasattr(self, 'pkell_spectra'):
                     self.pkell_spectra = np.zeros((self.ndbins, len(k), 3))
 
-                self.pkell_spectra[i,:,0] = p0
-                self.pkell_spectra[i,:,1] = p2
-                self.pkell_spectra[i,:,2] = p4                
-                                              
+                self.pkell_spectra[i, :, 0] = p0
+                self.pkell_spectra[i, :, 1] = p2
+                self.pkell_spectra[i, :, 2] = p4
+
                 if self.compute_p0:
                     p0_spline = interp1d(np.log10(k), np.arcsinh(p0),
                                          fill_value='extrapolate')
