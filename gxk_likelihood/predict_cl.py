@@ -51,6 +51,8 @@ class AngularPowerSpectra():
     def __init__(self,OmM,chi_of_z,E_of_z,dndz,Nchi=101,Nz=251):
         """Set up the class.
             OmM:  The value of Omega_m(z=0) for the cosmology.
+            chi_of_z: A function returning radial distance in Mpc/h given z.
+            E_of_z: A function returning H(z)/H(0) given z.
             dndz: A numpy array (Nbin,2) containing dN/dz vs. z."""
         # Copy the arguments, setting up the z-range.
         self.Eofz = E_of_z
@@ -82,7 +84,7 @@ class AngularPowerSpectra():
         self.zeff/= simps(     self.fchi**2/self.chival**2,x=self.chival)
         #
     def __call__(self,PggEmu,PgmEmu,PmmEmu,pk_pars,smag=0.4,Nell=64,Lmax=1001):
-        """Computes C_l^{gg} and C_l^{kg} given emulators for P_{ij}."""
+        """Computes C_l^{gg} and C_l^{kg} given emulators for P_{ij} and params."""
         fmag   = self.mag_bias_kernel(smag) # Magnification bias kernel.
         ell    = np.logspace(1,np.log10(Lmax),Nell) # More ell's are cheap.
         Cgg,Ckg= np.zeros( (Nell,self.Nchi) ),np.zeros( (Nell,self.Nchi) )
