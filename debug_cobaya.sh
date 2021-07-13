@@ -10,8 +10,8 @@
 #
 source activate cobaya
 #
-export PYTHONPATH=${PYTHONPATH}:/global/cscratch1/sd/mwhite/Fitting/CobayaLSS/lss_likelihood
-export OMP_NUM_THREADS=8
+export PYTHONPATH=${PYTHONPATH}:/global/cscratch1/sd/sfschen/CobayaLSS/lss_likelihood
+export PYTHONPATH=${PYTHONPATH}:/global/homes/s/sfschen/Python/velocileptors
 export NUMEXPR_MAX_THREADS=8
 #
 rm -rf chains/debug.*
