@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 #
-# Code to compute angular power spectra using Limber's approximation.
+# Code to compute angular power spectra using Limber's approximation,
+# ignoring higher-order corrections such as curved sky or redshift-space
+# distortions (that predominantly affect low ell).
 #
 import numpy as np
 import sys
@@ -184,32 +186,6 @@ class AngularPowerSpectra():
         fac[singular] = 1.0
         return(fac.prod(axis=-1))
         #
-    def T_AK(self,x):
-        """The "T" function of Adachi & Kasai (2012), used below."""
-        b1,b2,b3=2.64086441,0.883044401,0.0531249537
-        c1,c2,c3=1.39186078,0.512094674,0.0394382061
-        x3   = x**3
-        x6   = x3*x3
-        x9   = x3*x6
-        tmp  = 2+b1*x3+b2*x6+b3*x9
-        tmp /= 1+c1*x3+c2*x6+c3*x9
-        tmp *= x**0.5
-        return(tmp)
-        #
-    def chi_of_z(self,zz):
-        """The comoving distance to redshift zz, in Mpc/h.
-           Uses the Pade approximate of Adachi & Kasai (2012) to compute chi
-           for a LCDM model, ignoring massive neutrinos."""
-        s_ak = (self.OmX/self.OmM)**0.3333333
-        tmp  = self.T_AK(s_ak)-self.T_AK(s_ak/(1+zz))
-        tmp *= 2997.925/(s_ak*self.OmM)**0.5
-        return(tmp)
-        #
-    def E_of_z(self,zz):
-        """The dimensionless Hubble parameter at zz."""
-        Ez = (self.OmM*(1+zz)**3 + self.OmX)**0.5
-        return(Ez)
-        #
     def mag_bias_kernel(self,s,Nchi_mag=101):
         """Returns magnification bias kernel if 's' is the slope of
            the number counts dlog10N/dm."""
@@ -219,7 +195,7 @@ class AngularPowerSpectra():
         chivalp = np.array(list(map(zupper,self.chival))).transpose()
         zvalp   = self.zchi(chivalp)
         dndz_n  = np.interp(zvalp,self.zz,self.dndz,left=0,right=0)
-        Ez      = self.E_of_z(zvalp)
+        Ez      = self.Eofz(zvalp)
         g       = (chivalp-self.chival[np.newaxis,:])/chivalp
         g      *= dndz_n*Ez/2997.925
         g       = self.chival * simps(g,x=chivalp,axis=0)
@@ -252,11 +228,14 @@ class AngularPowerSpectra():
         else: # Use Hybrid
             self.pofk = HalobridPowerSpectra(klin,plin,halofit)
         #
-    def __init__(self,OmM,dndz,Nchi=101,Nz=251):
+    def __init__(self,OmM,chi_of_z,E_of_z,dndz,Nchi=101,Nz=251):
         """Set up the class.
             OmM:  The value of Omega_m(z=0) for the cosmology.
+            chi_of_z: A function returning radial distance in Mpc/h given z.
+            E_of_z: A function returning H(z)/H(0) given z.
             dndz: A numpy array (Nbin,2) containing dN/dz vs. z."""
         # Copy the arguments, setting up the z-range.
+        self.Eofz = E_of_z
         self.pofk = None
         self.Nchi = Nchi
         self.OmM  = OmM
@@ -268,24 +247,24 @@ class AngularPowerSpectra():
         # Normalize dN/dz.
         self.dndz = self.dndz/simps(self.dndz,x=self.zz)
         # Set up the chi(z) array and z(chi) spline.
-        self.chiz = np.array([self.chi_of_z(z) for z in self.zz])
+        self.chiz = chi_of_z(self.zz)
         self.zchi = Spline(self.chiz,self.zz)
         # Work out W(chi) for the objects whose dNdz is supplied.
         chimin    = np.min(self.chiz) + 1e-5
         chimax    = np.max(self.chiz)
         self.chival= np.linspace(chimin,chimax,self.Nchi)
         zval      = self.zchi(self.chival)
-        self.fchi = Spline(self.zz,self.dndz*self.E_of_z(self.zz))(zval)
+        self.fchi = Spline(self.zz,self.dndz*E_of_z(self.zz))(zval)
         self.fchi/= simps(self.fchi,x=self.chival)
         # and W(chi) for the CMB
-        self.chistar= self.chi_of_z(1098.)
+        self.chistar= chi_of_z(1098.)
         self.fcmb = 1.5*self.OmM*(1.0/2997.925)**2*(1+zval)
         self.fcmb*= self.chival*(self.chistar-self.chival)/self.chistar
         # Compute the effective redshift.
         self.zeff = simps(zval*self.fchi**2/self.chival**2,x=self.chival)
         self.zeff/= simps(     self.fchi**2/self.chival**2,x=self.chival)
         #
-    def __call__(self,pk_pars,smag=0.4,Nell=50,Lmax=1001):
+    def __call__(self,pk_pars,smag=0.4,Nell=64,Lmax=1001):
         """Computes C_l^{gg} and C_l^{kg}."""
         fmag    = self.mag_bias_kernel(smag) # Magnification bias kernel.
         ell     = np.logspace(1,np.log10(Lmax),Nell) # More ell's are cheap.
@@ -316,23 +295,3 @@ class AngularPowerSpectra():
         #
 
 
-
-
-
-
-
-
-
-
-if __name__=="__main__":
-    OmM  = 0.3
-    dndz = np.loadtxt("dndz.txt")
-    plin = np.loadtxt("pk_z000.pki")
-    aps  = AngularPowerSpectra(OmM,dndz)
-    aps.set_pk(plin[:,0],plin[:,1],None,False,None)
-    #
-    pk_pars= [1.0,0.0,0.0,0.0,0.0,0.0,1e3] # b1,b2,bs,b3,alpha_a,alpha_x,sn
-    smag   = 1.0
-    print(aps(pk_pars,smag))
-    print("SN: ",aps.shot3to2())
-    #

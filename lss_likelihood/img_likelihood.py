@@ -2,8 +2,8 @@ import numpy as np
 import sys
 import os
 
-import predict_cl as T # For theory.
 
+from predict_cl        import AngularPowerSpectra
 from cobaya.theory     import Theory
 from cobaya.likelihood import Likelihood
 
@@ -124,12 +124,14 @@ class PT_cell_theory(Theory):
         self.zmax = np.max(self.dndz[:,0])
     def get_requirements(self):
         """What we need in order to provide C_ell."""
+        zgrid=np.logspace(0,3.1,64) - 1.0
         zg  = np.linspace(self.zmin,self.zmax,21,endpoint=True)
         req = {\
                'Pk_interpolator': {'k_max': 30,'z': zg,\
                                    'nonlinear': False},\
                'sigma8_z': {'z': [0]},\
-               'Hubble': {'z': [0]},\
+               'Hubble':   {'z': zgrid},\
+               'comoving_radial_distance': {'z': zgrid},\
                'omegam': None\
               }
         return(req)
@@ -142,10 +144,14 @@ class PT_cell_theory(Theory):
         pp  = self.provider
         OmM = pp.get_param('omegam')
         hub = self.provider.get_Hubble(0)[0]/100.
+        # Make splines for chi(z) and E(z), converting to Mpc/h.
+        zgrid = np.logspace(0,3.1,64)-1.0
+        chiz  = pp.get_comoving_radial_distance(zgrid)*hub
+        chiz  = Spline(zgrid,chiz)
+        Eofz  = pp.get_Hubble(zgrid)
+        Eofz  = Spline(zgrid,Eofz/(100*hub))
         # Set up the APS, including its zeff.
-        # For now chi(z) is assumed LCDM, but we could
-        # pass a Spline or something from the provider.
-        aps = T.AngularPowerSpectra(OmM,self.dndz)
+        aps = AngularPowerSpectra(OmM,chiz,Eofz,self.dndz)
         if self.mname.startswith('clpt'):
             # Get Plin.
             ki  = np.logspace(-3.0,1.5,750)
