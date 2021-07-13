@@ -3,6 +3,7 @@ import sys
 import os
 
 
+from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 from predict_cl        import AngularPowerSpectra
 from cobaya.theory     import Theory
 from cobaya.likelihood import Likelihood
