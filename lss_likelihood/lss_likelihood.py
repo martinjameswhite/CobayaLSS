@@ -256,7 +256,8 @@ class PT_xi_theory(Theory):
         zg  = np.linspace(0,self.zfid,8,endpoint=True)
         req = {\
                'Pk_interpolator': {'k_max': 30,'z': zg,\
-                                   'nonlinear': False},\
+                                   'nonlinear': False,\
+                                   'vars_pairs': [['delta_nonu','delta_nonu']]},\
                'sigma8_z': {'z': [0.0,self.zfid]},\
                'fsigma8':  {'z': [self.zfid]},\
                'Hubble':   {'z': [0.0,self.zfid]},\
@@ -314,7 +315,8 @@ class PT_pk_theory(Theory):
         # only depend on cosmological things (not biases).
         req = {\
                'Pk_interpolator': {'k_max': 30,'z': zg,\
-                                   'nonlinear': False},\
+                                   'nonlinear': False,\
+                                   'vars_pairs': [['delta_nonu','delta_nonu']]},\
                'Hubble':   {'z': [0.0,self.zfid]},\
                'sigma8_z': {'z': [0.0,self.zfid]},\
                'fsigma8':  {'z': [self.zfid]},\
