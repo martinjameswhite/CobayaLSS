@@ -77,7 +77,7 @@ class RSDCalculator(Theory):
 
         state['pt_pk_ell_model'] = []
         for i, z in enumerate(self.z):
-            pk = pk_lin_interp.P(z, self.k * h)
+            pk = pk_lin_interp.P(z, self.k * h) * h**3
             lpt = LPT_RSD(self.k, pk, kIR=self.kIR)
             lpt.make_pltable(f[i], nmax=self.nmax, kmin=self.kmin,
                              kmax=self.kmax, nk=self.nk,

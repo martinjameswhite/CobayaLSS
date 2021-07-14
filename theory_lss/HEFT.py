@@ -168,7 +168,7 @@ class HEFTCalculator(Theory):
                                                self.nspec,
                                                self.nk))
         if self.kecleft:
-            pk = pk_lin_interp.P(0, self.k * h)
+            pk = pk_lin_interp.P(0, self.k * h) * h**3
             cleftobj = RKECLEFT(self.k, pk)
 
             for i, z in enumerate(self.z):
@@ -178,7 +178,7 @@ class HEFTCalculator(Theory):
 
         else:
             for i, z in enumerate(self.z):
-                pk = pk_lin_interp.P(z, self.k * h)
+                pk = pk_lin_interp.P(z, self.k * h) * h**3
                 cleftobj = CLEFT(self.k, pk, N=2700, jn=10, cutoff=1)
                 cleftobj.make_ptable()
                 cleftpk = cleftobj.pktable[:, 1:self.nspec+1].T
