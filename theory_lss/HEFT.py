@@ -78,9 +78,9 @@ class HEFTCalculator(Theory):
         reqs = {}
 
         if self.use_pcb:
-            lin_pk_pairs = [['delta_cb', 'delta_cb']]
+            self.lin_pk_pairs = [['delta_nonu', 'delta_nonu']]
         else:
-            lin_pk_pairs = [['delta_tot', 'delta_tot']]
+            self.lin_pk_pairs = [['delta_tot', 'delta_tot']]
 
 
         if 'heft_spectrum_interpolator' in requirements:
@@ -97,7 +97,7 @@ class HEFTCalculator(Theory):
             reqs = {'Pk_interpolator': {'k_max': 10,
                                         'z': zs,
                                         'nonlinear': False,
-                                        'vars_pairs': lin_pk_pairs},
+                                        'vars_pairs': self.lin_pk_pairs},
                     'sigma8_z': {'z': zs},
                     'Hubble': {'z': [0.0]}}
             reqs.update({'ombh2': None, 'omch2': None, 'w': None,
@@ -119,7 +119,7 @@ class HEFTCalculator(Theory):
             reqs = {'Pk_interpolator': {'k_max': 10,
                                         'z': zs,
                                         'nonlinear': False,
-                                        'vars_pairs': lin_pk_pairs},
+                                        'vars_pairs': self.lin_pk_pairs},
                     'sigma8_z': {'z': zs},
                     'Hubble': {'z': [0.0]}}
 
@@ -137,7 +137,7 @@ class HEFTCalculator(Theory):
             reqs = {'Pk_interpolator': {'k_max': 10,
                                         'z': zs,
                                         'nonlinear': False,
-                                        'vars_pairs': lin_pk_pairs},
+                                        'vars_pairs': self.lin_pk_pairs},
                     'sigma8_z': {'z': zs},
                     'Hubble': {'z': [0.0]}}
             reqs.update({'ombh2': None, 'omch2': None, 'w': None,
@@ -158,7 +158,7 @@ class HEFTCalculator(Theory):
             reqs = {'Pk_interpolator': {'k_max': 10,
                                         'z': zs,
                                         'nonlinear': False,
-                                        'vars_pairs': lin_pk_pairs},
+                                        'vars_pairs': self.lin_pk_pairs},
                     'sigma8_z': {'z': zs},
                     'Hubble': {'z': [0.0]}}
             
@@ -172,7 +172,7 @@ class HEFTCalculator(Theory):
     def calculate(self, state, want_derived=True, **params_values_dict):
 
         k = self.k
-        pk_lin_interp = self.provider.get_Pk_interpolator(nonlinear=False)
+        pk_lin_interp = self.provider.get_Pk_interpolator(nonlinear=False,var_pair=self.lin_pk_pairs[0])
         sigma8_z = self.provider.get_sigma8_z(self.z)
         D = sigma8_z/sigma8_z[0]
         h = self.provider.get_Hubble(0.0) / 100
