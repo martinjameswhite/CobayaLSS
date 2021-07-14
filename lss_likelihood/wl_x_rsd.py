@@ -1,6 +1,6 @@
 import numpy as np
 from cobaya.likelihood import Likelihood
-from cobaya.typing import Union, Sequence, Optional
+from cobaya.typing import Union, Sequence, Optional, Dict
 from cobaya.theories.cosmo import PowerSpectrumInterpolator
 from itertools import permutations, product
 from scipy.interpolate import interp1d
@@ -56,6 +56,8 @@ class HarmonicSpaceWLxRSD(Likelihood):
         self.compute_p0 = False
         self.compute_p2 = False
         self.compute_p4 = False
+        self.cell_emulators = False
+        self.pell_emulators = False
         self.load_data()
         self.setup_projection()
 
@@ -234,9 +236,9 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 else:
                     reqs.update({'eft_spectrum_interpolator': {'z': self.z}})
             else:
-                reqs.update('logA': None, 'ns': None,
+                reqs.update({'logA': None, 'ns': None,
                             'H0': None, 'w': None,
-                            'ombh2': None, 'omch2': None)
+                             'ombh2': None, 'omch2': None})
 
             z = np.concatenate([self.z, [1098.]])
             reqs.update({'comoving_radial_distance': {'z': z},
@@ -251,9 +253,9 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 reqs['pt_pk_ell_model']['chiz_fid'] = self.chiz_fid
                 reqs['pt_pk_ell_model']['hz_fid'] = self.hz_fid
             else:
-                reqs.update('logA': None, 'ns': None,
+                reqs.update({'logA': None, 'ns': None,
                             'H0': None, 'w': None,
-                            'ombh2': None, 'omch2': None)
+                             'ombh2': None, 'omch2': None})
 
         return reqs
 
@@ -319,7 +321,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
             ez = self.provider.get_Hubble(self.z) /\
                 self.provider.get_param('H0')
 
-            if not self.emulate_cell:
+            if not self.cell_emulators:
                 if self.heft:
                     cell_spec_interpolator = self.provider.get_result(
                         'heft_spectrum_interpolator')
@@ -349,7 +351,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 bk = params_values['bk_{}'.format(i)]
                 sn = params_values['sn_{}'.format(i)]
                 bias_params = [b1, b2, bs, bk, sn]
-                if not self.emulate_cells:
+                if not self.cell_emulators:
 
                     spectra = np.zeros((n_spec_cell, self.nk, self.nz_proj))
                     for j in range(n_spec_cell):
