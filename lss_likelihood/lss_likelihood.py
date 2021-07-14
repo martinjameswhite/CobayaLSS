@@ -279,7 +279,7 @@ class PT_xi_theory(Theory):
         ff   = fs8 / s8
         # and Plin.
         ki   = np.logspace(-3.0,1.5,750)
-        pi   = pp.get_Pk_interpolator(nonlinear=False)
+        pi   = pp.get_Pk_interpolator(nonlinear=False,var_pair=['delta_nonu','delta_nonu'])
         pi   = pi.P(self.zfid,ki*hub)*hub**3
         # Work out the A-P scaling to the fiducial cosmology.
         Hz   = pp.get_Hubble(self.zfid)[0]/pp.get_Hubble(0)[0]
@@ -338,7 +338,7 @@ class PT_pk_theory(Theory):
         #ff   = fs8 / s8
         # and Plin.
         ki   = np.logspace(-3.0,1.5,750)
-        pi   = pp.get_Pk_interpolator(nonlinear=False)
+        pi   = pp.get_Pk_interpolator(nonlinear=False,var_pair=['delta_nonu','delta_nonu'])
         pi   = pi.P(self.zfid,ki*hub)*hub**3
         # Work out the A-P scaling to the fiducial cosmology.
         #Hz   = pp.get_Hubble(self.zfid)[0]/pp.get_Hubble(0)[0]
