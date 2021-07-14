@@ -5,7 +5,7 @@ from velocileptors.LPT.cleft_fftw import CLEFT
 from velocileptors.EPT.cleft_kexpanded_resummed_fftw import RKECLEFT
 from anzu.emu_funcs import LPTEmulator
 from cobaya.typing import Union, Sequence
-
+import warnings
 
 class HEFTCalculator(Theory):
 
@@ -21,6 +21,7 @@ class HEFTCalculator(Theory):
     kecleft: bool
     heft: bool
     z: Union[Sequence, np.ndarray]
+    use_pcb: bool
 
     def initialize(self):
         """called from __init__ to initialize"""
@@ -52,6 +53,9 @@ class HEFTCalculator(Theory):
         self.get_heft_interpolator = False
 
         if self.heft:
+            if self.use_pcb:
+                raise ValueError('You requested that we use P_cb but Anzu does not support massive neutrinos.\
+                                  Either set use_heft=False or use_pcb=False.')
 
             self.emu = LPTEmulator(kecleft=self.kecleft)
 
@@ -73,6 +77,12 @@ class HEFTCalculator(Theory):
 
         reqs = {}
 
+        if self.use_pcb:
+            lin_pk_pairs = [['delta_cb', 'delta_cb']]
+        else:
+            lin_pk_pairs = [['delta_tot', 'delta_tot']]
+
+
         if 'heft_spectrum_interpolator' in requirements:
             if requirements['heft_spectrum_interpolator'] is None:
                 zs = self.z
@@ -86,7 +96,8 @@ class HEFTCalculator(Theory):
             self.get_heft_interpolator = True
             reqs = {'Pk_interpolator': {'k_max': 10,
                                         'z': zs,
-                                        'nonlinear': False},
+                                        'nonlinear': False,
+                                        'vars_pairs': lin_pk_pairs},
                     'sigma8_z': {'z': zs},
                     'Hubble': {'z': [0.0]}}
             reqs.update({'ombh2': None, 'omch2': None, 'w': None,
@@ -107,7 +118,8 @@ class HEFTCalculator(Theory):
             self.get_eft_interpolator = True
             reqs = {'Pk_interpolator': {'k_max': 10,
                                         'z': zs,
-                                        'nonlinear': False},
+                                        'nonlinear': False,
+                                        'vars_pairs': lin_pk_pairs},
                     'sigma8_z': {'z': zs},
                     'Hubble': {'z': [0.0]}}
 
@@ -124,7 +136,8 @@ class HEFTCalculator(Theory):
 
             reqs = {'Pk_interpolator': {'k_max': 10,
                                         'z': zs,
-                                        'nonlinear': False},
+                                        'nonlinear': False,
+                                        'vars_pairs': lin_pk_pairs},
                     'sigma8_z': {'z': zs},
                     'Hubble': {'z': [0.0]}}
             reqs.update({'ombh2': None, 'omch2': None, 'w': None,
@@ -144,7 +157,8 @@ class HEFTCalculator(Theory):
 
             reqs = {'Pk_interpolator': {'k_max': 10,
                                         'z': zs,
-                                        'nonlinear': False},
+                                        'nonlinear': False,
+                                        'vars_pairs': lin_pk_pairs},
                     'sigma8_z': {'z': zs},
                     'Hubble': {'z': [0.0]}}
             
