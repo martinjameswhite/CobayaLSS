@@ -1,9 +1,6 @@
-# Custom emulator class.
-#
-
 import numpy as np
+from scipy.special import expit
 import json
-from   scipy.special import expit
 
 
 class Emulator(object):
@@ -20,50 +17,18 @@ class Emulator(object):
         self.k = np.logspace(np.log10(kmin), np.log10(kmax), self.nk)
 
     def load(self, filebase):
+        
+        with open('{}.json'.format(filebase), 'r') as fp:
+            weights = json.load(fp)
+            
+            for k in weights:
+                if k in ['W', 'b', 'alphas', 'betas']:
+                    for i, wi in enumerate(weights[k]):
+                        weights[k][i] = np.array(wi).astype(np.float32)
+                else:
+                    weights[k] = np.array(weights[k]).astype(np.float32)
 
-        with open('{}_W.json'.format(filebase), 'r') as fp:
-            self.W = json.load(fp)
-            for i, wi in enumerate(self.W):
-                self.W[i] = np.array(wi).astype(np.float32)
-
-        with open('{}_b.json'.format(filebase), 'r') as fp:
-            self.b = json.load(fp)
-            for i, bi in enumerate(self.b):
-                self.b[i] = np.array(bi).astype(np.float32)
-
-        with open('{}_alphas.json'.format(filebase), 'r') as fp:
-            self.alphas = json.load(fp)
-            for i, ai in enumerate(self.alphas):
-                self.alphas[i] = np.array(ai).astype(np.float32)
-
-        with open('{}_betas.json'.format(filebase), 'r') as fp:
-            self.betas = json.load(fp)
-            for i, bi in enumerate(self.betas):
-                self.betas[i] = np.array(bi).astype(np.float32)
-
-        with open('{}_pc_mean.json'.format(filebase), 'r') as fp:
-            self.pc_mean = np.array(json.load(fp)).astype(np.float32)
-
-        with open('{}_pc_sigmas.json'.format(filebase), 'r') as fp:
-            self.pc_sigmas = np.array(json.load(fp)).astype(np.float32)
-
-        with open('{}_v.json'.format(filebase), 'r') as fp:
-            self.v = np.array(json.load(fp)).astype(np.float32)
-
-        with open('{}_sigmas.json'.format(filebase), 'r') as fp:
-            self.sigmas = np.array(json.load(fp)).astype(np.float32)
-
-        with open('{}_mean.json'.format(filebase), 'r') as fp:
-            self.mean = np.array(json.load(fp)).astype(np.float32)
-
-        with open('{}_fstd.json'.format(filebase), 'r') as fp:
-            self.fstd = np.array(json.load(fp)).astype(np.float32)
-
-        with open('{}_param_sigmas.json'.format(filebase), 'r') as fp:
-            self.param_sigmas = np.array(json.load(fp)).astype(np.float32)
-
-        with open('{}_param_mean.json'.format(filebase), 'r') as fp:
-            self.param_mean = np.array(json.load(fp)).astype(np.float32)
+                setattr(self,k, weights[k])
 
     def activation(self, x, alpha, beta):
         return (beta + (expit(alpha * x) * (1 - beta))) * x
