@@ -70,12 +70,19 @@ class GxKLikelihood(Likelihood):
             aps = AngularPowerSpectra(OmM,chiz,Eofz,self.dndz[i])
             # Fill in the parameter list, starting with the
             # cosmological parameters.
-            cpars = [pp.get_param('logA'),\
-                     pp.get_param('ns'),\
-                     pp.get_param('H0'),\
-                     -1.0,\
-                     pp.get_param('ombh2'),\
-                     pp.get_param('omch2')]
+            if self.model.startswith('clpt'):
+                cpars = [pp.get_param('logA'),\
+                         pp.get_param('H0'),\
+                         pp.get_param('omch2')]
+            elif self.model.startswith('anzu'):
+                cpars = [pp.get_param('logA'),\
+                         pp.get_param('ns'),\
+                         pp.get_param('H0'),\
+                         -1.0,\
+                         pp.get_param('ombh2'),\
+                         pp.get_param('omch2')]
+            else:
+                raise RuntimeError("Unknown model.")
             # Extract some common parameters.
             b1  = pp.get_param('b1_'+suf)
             b2  = pp.get_param('b2_'+suf)
@@ -90,12 +97,12 @@ class GxKLikelihood(Likelihood):
                 alpA  = pp.get_param('alpha_a_'+suf)
                 alpX  = pp.get_param('alpha_x_'+suf)
                 bparsA= [b1,b2,alpA,sn]
-                bparsX= [b1,b2,alpX]
+                bparsX= [b1,b2,alpX,0.]
             elif self.model.startswith('anzu'):
                 bs    = pp.get_param('bs_'+suf)
                 bn    = pp.get_param('bn_'+suf)
                 bparsA= [b1,b2,bs,bn,sn]
-                bparsX= [b1,b2,bs,bn,sn]
+                bparsX= [b1,b2,bs,bn,0.]
             else:
                 raise RuntimeError("Unknown model.")
             # and call APS to get a prediction,
