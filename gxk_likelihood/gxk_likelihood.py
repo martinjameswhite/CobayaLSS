@@ -70,12 +70,12 @@ class GxKLikelihood(Likelihood):
             aps = AngularPowerSpectra(OmM,chiz,Eofz,self.dndz[i])
             # Fill in the parameter list, starting with the
             # cosmological parameters.
-            pars = [pp.get_param('logA'),\
-                    pp.get_param('ns'),\
-                    pp.get_param('H0'),\
-                    -1.0,\
-                    pp.get_param('ombh2'),\
-                    pp.get_param('omch2')]
+            cpars = [pp.get_param('logA'),\
+                     pp.get_param('ns'),\
+                     pp.get_param('H0'),\
+                     -1.0,\
+                     pp.get_param('ombh2'),\
+                     pp.get_param('omch2')]
             # Extract some common parameters.
             b1  = pp.get_param('b1_'+suf)
             b2  = pp.get_param('b2_'+suf)
@@ -89,16 +89,18 @@ class GxKLikelihood(Likelihood):
             if self.model.startswith('clpt'):
                 alpA  = pp.get_param('alpha_a_'+suf)
                 alpX  = pp.get_param('alpha_x_'+suf)
-                pars += [b1,b2,alpA,alpX,sn]
+                bparsA= [b1,b2,alpA,sn]
+                bparsX= [b1,b2,alpX]
             elif self.model.startswith('anzu'):
                 bs    = pp.get_param('bs_'+suf)
                 bn    = pp.get_param('bn_'+suf)
-                pars += [b1,b2,bs,bn,sn]
+                bparsA= [b1,b2,bs,bn,sn]
+                bparsX= [b1,b2,bs,bn,sn]
             else:
                 raise RuntimeError("Unknown model.")
             # and call APS to get a prediction,
             ell,clgg,clgk = aps(self.PggEmu,self.PgmEmu,self.PmmEmu,\
-                                pars,smag,Lmax=1251)
+                                cpars,bparsA,bparsX,smag,Lmax=1251)
             thy = np.array([ell,clgg,clgk]).T
             # then "observe" it, appending the observations to obs.
             obs = np.append(obs,self.observe(thy,self.wla[i],self.wlx[i]))

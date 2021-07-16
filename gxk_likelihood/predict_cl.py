@@ -83,16 +83,23 @@ class AngularPowerSpectra():
         self.zeff = simps(zval*self.fchi**2/self.chival**2,x=self.chival)
         self.zeff/= simps(     self.fchi**2/self.chival**2,x=self.chival)
         #
-    def __call__(self,PggEmu,PgmEmu,PmmEmu,pk_pars,smag=0.4,Nell=64,Lmax=1001):
-        """Computes C_l^{gg} and C_l^{kg} given emulators for P_{ij} and params."""
-        fmag   = self.mag_bias_kernel(smag) # Magnification bias kernel.
+    def __call__(self,PggEmu,PgmEmu,PmmEmu,cpars,bparsA,bparsX,\
+                 smag=0.4,Nell=64,Lmax=1001):
+        """Computes C_l^{gg} and C_l^{kg} given emulators for P_{ij} and
+           cosmological parameters (cpars) plus bias params for auto (bparsA)
+            and cross (bparsX) and the magnification slope (smag)."""
+        # Set up arrays to hold kernels for C_l.
         ell    = np.logspace(1,np.log10(Lmax),Nell) # More ell's are cheap.
         Cgg,Ckg= np.zeros( (Nell,self.Nchi) ),np.zeros( (Nell,self.Nchi) )
-        pars   = np.array(pk_pars+[self.zeff])
-        Pgg    = Spline(*PggEmu(pars))     # Extrapolates.
-        Pgm    = Spline(*PgmEmu(pars))     # Extrapolates.
-        pars   = np.array(pk_pars[:6]+[self.zeff])
-        Pmm    = Spline(*PmmEmu(pars))     # Extrapolates.
+        # The magnification bias kernel.
+        fmag   = self.mag_bias_kernel(smag)
+        # Fit splines to our P(k).  The spline extrapolates as needed.
+        pars   = np.array(cpars+bparsA+[self.zeff])
+        Pgg    = Spline(*PggEmu(pars))
+        pars   = np.array(cpars+bparsX+[self.zeff])
+        Pgm    = Spline(*PgmEmu(pars))
+        pars   = np.array(cpars+[self.zeff])
+        Pmm    = Spline(*PmmEmu(pars))
         # Work out the integrands for C_l^{gg} and C_l^{kg}.
         for i,chi in enumerate(self.chival):
             kval     = (ell+0.5)/chi        # The vector of k's.
@@ -113,5 +120,4 @@ class AngularPowerSpectra():
         Ckg = Spline(ell,Ckg)(lval)
         return( (lval,Cgg,Ckg) )
         #
-
 
