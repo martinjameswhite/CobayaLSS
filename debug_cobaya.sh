@@ -16,6 +16,5 @@ export NUMEXPR_MAX_THREADS=8
 #
 rm -rf chains/debug.*
 #
-srun -N ${SLURM_NNODES} --ntasks-per-node 1 -c 8 \
-  cobaya-run debug_cobaya.yaml
+srun -N ${SLURM_NNODES} --ntasks-per-node 1 -c 8 cobaya-run debug_cobaya.yaml
 #

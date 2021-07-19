@@ -6,6 +6,7 @@ from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 
 from velocileptors.LPT.lpt_rsd_fftw          import LPT_RSD
 from velocileptors.LPT.moment_expansion_fftw import MomentExpansion
+from linear_theory import*
 
 
 

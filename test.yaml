@@ -10,61 +10,79 @@ theory:
       theta_H0_range:
       - 20
       - 100
+    stop_at_error: True
+  lss_likelihood.PT_xi_theory:
+    zfid:     0.61
+    chiz_fid: 1559.56  # Mpc/h.
+    Hz_fid:   1.40856  # Relative to H(0).
 likelihood:
   lss_likelihood.XiLikelihood:
-    #zfid:  0.61
     mcut:  25.0
     qcut:  25.0
     datfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.xis
     covfn: /global/cscratch1/sd/mwhite/Fitting/fit_2pt/data/BOSS_DR12/BOSS_DR12_z061_s01.xiscov
-    #chiz_fid: 1559.56  # Mpc/h.
-    #Hz_fid:   1.40856  # Relative to H(0).
+  sn.pantheon: null
 params:
   logA:
-    value: 3.05
-    drop:  True
-  ns:
-    value: 0.9667
-  H0:
-    value: 67.74
-  ombh2:
-    value: 0.022
-  omnuh2:
-    value: 0.0006442
-  omch2:
     prior:
-      dist: uniform
-      min:  0.11
-      max:  0.13
+      min: 1.61
+      max: 3.91
     ref:
-      dist:  norm
-      loc:   0.119
-      scale: 0.001
+      dist: norm
+      loc:  3.00
+      scale: 0.01
+    drop: True
+    latex: \log(10^{10} A_\mathrm{s})
   As:
     value: 'lambda logA: 1e-10*np.exp(logA)'
     latex: A_\mathrm{s}
-  omegamh2:
-    derived: 'lambda omch2,ombh2,omnuh2: omch2+ombh2+omnuh2'
-    latex: \Omega_\mathrm{m} h^2
+  ns:
+    value: 0.9667
+    latex: n_\mathrm{s}
+  ombh2:
+    value: 0.022
+    latex: \omega_b
+  #omnuh2:
+    #value: 0.0006442
+  omch2:
+    prior:
+      min: 0.10
+      max: 0.14
+    ref:
+      dist: norm
+      loc:   0.119
+      scale: 0.001
+    latex: \omega_c
+  thetastar:
+    value: 0.0104109
+    latex: \theta_\star
+  H0:
+    #prior:
+    #  min: 60.0
+    #  max: 80.0
+    #ref:
+    #  dist: norm
+    #  loc:  68.0
+    #  scale: 1.0
+    latex: H_0
   omegam:
-    derived: 'lambda omegamh2,H0: omegamh2*(100/H0)**2'
     latex: \Omega_\mathrm{m}
   sigma8:
     latex: \sigma_8
-  b1:
+  bsig8:
     prior:
       dist: uniform
-      min: -0.5
-      max:  2.0
+      min:  0.5
+      max:  3.0
     ref:
       dist:  norm
-      loc:   1.20
+      loc:   1.60
       scale: 0.05
-    latex: b_1
+    latex: (1+b_1)\sigma_8
   b2:
     prior:
       dist:  norm
-      loc:   0.
+      loc:   0.0
       scale: 15.
     ref:
       dist:  norm
@@ -74,8 +92,8 @@ params:
   bs:
     prior:
       dist:  norm
-      loc:   0.
-      scale: 5.
+      loc:   0.0
+      scale: 3.0
     ref:
       dist:  norm
       loc:   0.0
@@ -89,7 +107,7 @@ params:
     ref:
       dist:  norm
       loc:   1.0
-      scale: 0.1
+      scale: 5.0
     latex: \alpha_0
   alpha2:
     prior:
@@ -98,8 +116,8 @@ params:
       scale: 50.
     ref:
       dist:  norm
-      loc:   5.0
-      scale: 5.
+      loc:   1.0
+      scale: 5.0
     latex: \alpha_2
 sampler:
   evaluate:
