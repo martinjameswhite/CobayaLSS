@@ -127,6 +127,8 @@ class PT_cell_theory(Theory):
         """What we need in order to provide C_ell."""
         zgrid=np.logspace(0,3.1,64) - 1.0
         zg  = np.linspace(self.zmin,self.zmax,21,endpoint=True)
+        # For now we'll use delta_tot to match Anzu, otherwise
+        # we should use delta_nonu.
         req = {\
                'Pk_interpolator': {'k_max': 30,'z': zg,\
                                    'nonlinear': False},\
@@ -154,7 +156,8 @@ class PT_cell_theory(Theory):
         # Set up the APS, including its zeff.
         aps = AngularPowerSpectra(OmM,chiz,Eofz,self.dndz)
         if self.mname.startswith('clpt'):
-            # Get Plin.
+            # Get Plin.  Here we're using delta_tot to match
+            # Anzu, but could use delta_nonu instead.
             ki  = np.logspace(-3.0,1.5,750)
             pi  = pp.get_Pk_interpolator(nonlinear=False)
             pi  = pi.P(aps.zeff,ki*hub)*hub**3
