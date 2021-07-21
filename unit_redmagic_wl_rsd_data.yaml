@@ -1,0 +1,6 @@
+spectra_filename : /project/projectdirs/desi/users/jderose/CobayaLSS/data/wl_x_rsd_spectra.txt
+covariance_filename : /project/projectdirs/desi/users/jderose/CobayaLSS/data/wl_x_rsd_cov.txt
+nz_d : /project/projectdirs/desi/users/jderose/CobayaLSS/data/wl_x_rsd_nz.txt
+z_fid: [0.5924]
+chiz_fid: [1519.46]
+hz_fid: [1.389]
