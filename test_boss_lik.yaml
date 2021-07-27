@@ -16,8 +16,12 @@ theory:
       zfids:
       - 0.61
       - 0.38
-      chiz_fid: 1559.56  # Mpc/h.
-      Hz_fid:   1.40856  # Relative to H(0).
+      chiz_fids:
+      - 1559.56  # Mpc/h.
+      - 1034.38
+      Hz_fids:
+      - 1.40856  # Relative to H(0).
+      - 1.22676
       stop_at_error: True
       
 likelihood:
@@ -37,14 +41,14 @@ likelihood:
   boss_likelihoods.NGCZ1:
     zfid:     0.38
     sample_name: NGCz1
-    fs_datfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/boss_data/pk/pk_NGC_z3.dat
+    fs_datfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/boss_data/pk/pk_NGC_z1.dat
     #covfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/covariances/cov_fs_NGC_z3.dat
-    covfn: '/global/cscratch1/sd/sfschen/boss_fixedb_bias/C_2048_BOSS_DR12_NGC_z3_V6C_1_1_1_1_1_10_200_200_prerecon.matrix.gz'
+    covfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/C_2048_BOSS_DR12_NGC_z1_V6C_1_1_1_1_1_10_200_200_prerecon.matrix.gz
     fs_kmin: 0.02
     fs_mmax: 0.20
     fs_qmax: 0.20
-    fs_matMfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/M_BOSS_DR12_NGC_z3_V6C_1_1_1_1_1_1200_2000.matrix.gz
-    fs_matWfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/W_BOSS_DR12_NGC_z3_V6C_1_1_1_1_1_10_200_2000_averaged_v1.matrix.gz
+    fs_matMfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/M_BOSS_DR12_NGC_z1_V6C_1_1_1_1_1_1200_2000.matrix.gz
+    fs_matWfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/W_BOSS_DR12_NGC_z1_V6C_1_1_1_1_1_10_200_2000_averaged_v1.matrix.gz
     stop_at_error: True
     
 params:
@@ -236,6 +240,29 @@ params:
     
 sampler:
   evaluate:
+    override:
+      logA: 3.047
+      omch2: 0.11933
+      H0: 67.66
+      
+      # NGCz3
+      bsig8_NGCz3: 1.535805
+      b2_NGCz3:   -2.47490318
+      bs_NGCz3:   -0.17495553
+      alpha0_NGCz3: -0.1791873
+      alpha2_NGCz3: 1.18218936
+      SN0_NGCz3: 0.
+      SN2_NGCz3: 29296.768
+      
+      # NGCz1
+      bsig8_NGCz1: 1.47059
+      b2_NGCz1:   -2.3746
+      bs_NGCz1:   0.5610
+      alpha0_NGCz1: 53.871
+      alpha2_NGCz1: -3.36142
+      SN0_NGCz1: -2203.7
+      SN2_NGCz1: -33073.1
+  
 timing: True
 output: chains/test_boss_lik
 stop_on_error: True

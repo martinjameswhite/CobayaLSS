@@ -137,7 +137,11 @@ class FSLikelihood(Likelihood):
         stoch = [sn0, sn2, 0]
         bvec = bias + cterm + stoch
         
+        print(self.zstr, b1, sig8)
+        
         kv, p0, p2, p4 = modPTs[self.zstr].combine_bias_terms_pkell(bvec)
+        
+        np.savetxt('pells_' + self.zstr + '.txt',[kv,p0,p2,p4])
         
         # Put a point at k=0 to anchor the low-k part of the Spline.
         kv,p0 = np.append([0.,],kv),np.append([0.0,],p0)
@@ -169,8 +173,8 @@ class PT_pk_theory_zs(Theory):
     """A class to return a PT P_ell module."""
     # From yaml file.
     zfids:    list
-    chiz_fid: float
-    Hz_fid:   float
+    chiz_fids: list
+    Hz_fids:   list
     #
     def initialize(self):
         """Sets up the class."""
@@ -214,7 +218,7 @@ class PT_pk_theory_zs(Theory):
         
         modPTs = {}
         
-        for zfid in self.zfids:
+        for zfid, chiz_fid, Hz_fid in zip(self.zfids,self.chiz_fids, self.Hz_fids):
             zstr = "%.2f"%(zfid)
             ff   = f_of_a(1/(1.+zfid), OmegaM=pp.get_param('omegam')) * (1 - 0.6 * fnu)
 
@@ -225,8 +229,8 @@ class PT_pk_theory_zs(Theory):
             # Work out the A-P scaling to the fiducial cosmology.        
             Hz   = pp.get_Hubble(zfid)[0]/pp.get_Hubble(0)[0]
             chiz = pp.get_comoving_radial_distance(zfid)[0]*hub
-            print(zfid, Hz, chiz)
-            apar,aperp = self.Hz_fid/Hz,chiz/self.chiz_fid
+            print(zfid, Hz, Hz_fid, chiz, chiz_fid)
+            apar,aperp = Hz_fid/Hz,chiz/chiz_fid
 
             modPTs[zstr] = LPT_RSD(ki, pi, kIR=0.2,\
                         cutoff=10, extrap_min = -4, extrap_max = 3, N = 2000, threads=1, jn=5)
