@@ -11,9 +11,9 @@ from scipy.integrate   import simps
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 
 # Model the (real-space) power spectrum using LPT.
-from velocileptors.LPT.cleft_fftw import CLEFT
+#from velocileptors.LPT.cleft_fftw import CLEFT
 # Model the (real-space) power spectrum using Anzu.
-from anzu.emu_funcs import LPTEmulator
+#from anzu.emu_funcs import LPTEmulator
 
 
 

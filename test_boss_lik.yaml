@@ -1,0 +1,259 @@
+theory:
+  camb:
+    extra_args:
+      bbn_predictor: PArthENoPE_880.2_standard.dat
+      lens_potential_accuracy: 1
+      num_massive_neutrinos: 1
+      nnu: 3.046
+      mnu: 0.06
+      tau: 0.07
+      theta_H0_range:
+      - 20
+      - 100
+    stop_at_error: True
+    
+  fs_likelihood_zs.PT_pk_theory_zs:
+      zfids:
+      - 0.61
+      - 0.38
+      chiz_fid: 1559.56  # Mpc/h.
+      Hz_fid:   1.40856  # Relative to H(0).
+      stop_at_error: True
+      
+likelihood:
+  boss_likelihoods.NGCZ3:
+    zfid:     0.61
+    sample_name: NGCz3
+    fs_datfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/boss_data/pk/pk_NGC_z3.dat
+    #covfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/covariances/cov_fs_NGC_z3.dat
+    covfn: '/global/cscratch1/sd/sfschen/boss_fixedb_bias/C_2048_BOSS_DR12_NGC_z3_V6C_1_1_1_1_1_10_200_200_prerecon.matrix.gz'
+    fs_kmin: 0.02
+    fs_mmax: 0.20
+    fs_qmax: 0.20
+    fs_matMfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/M_BOSS_DR12_NGC_z3_V6C_1_1_1_1_1_1200_2000.matrix.gz
+    fs_matWfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/W_BOSS_DR12_NGC_z3_V6C_1_1_1_1_1_10_200_2000_averaged_v1.matrix.gz
+    stop_at_error: True
+    
+  boss_likelihoods.NGCZ1:
+    zfid:     0.38
+    sample_name: NGCz1
+    fs_datfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/boss_data/pk/pk_NGC_z3.dat
+    #covfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/covariances/cov_fs_NGC_z3.dat
+    covfn: '/global/cscratch1/sd/sfschen/boss_fixedb_bias/C_2048_BOSS_DR12_NGC_z3_V6C_1_1_1_1_1_10_200_200_prerecon.matrix.gz'
+    fs_kmin: 0.02
+    fs_mmax: 0.20
+    fs_qmax: 0.20
+    fs_matMfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/M_BOSS_DR12_NGC_z3_V6C_1_1_1_1_1_1200_2000.matrix.gz
+    fs_matWfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/W_BOSS_DR12_NGC_z3_V6C_1_1_1_1_1_10_200_2000_averaged_v1.matrix.gz
+    stop_at_error: True
+    
+params:
+  logA:
+    prior:
+      min: 1.61
+      max: 3.91
+    ref:
+      dist: norm
+      loc:  2.8972139
+      scale: 0.05
+    drop: True
+    latex: \log(10^{10} A_\mathrm{s})
+  As:
+    value: 'lambda logA: 1e-10*np.exp(logA)'
+    latex: A_\mathrm{s}
+  ns:
+    value: 0.9665
+    latex: n_\mathrm{s}
+  ombh2:
+    value: 0.02242
+    latex: \omega_b
+  omch2:
+    prior:
+      min: 0.05
+      max: 0.2
+    ref:
+      dist: norm
+      loc:   0.13158155
+      scale: 0.01
+    latex: \omega_c
+  H0:
+    prior:
+      min: 60.0
+      max: 80.0
+    ref:
+      dist: norm
+      loc:  70.342412
+      scale: 1.0
+    latex: H_0
+  omegam:
+    latex: \Omega_\mathrm{m}
+  sigma8:
+    latex: \sigma_8
+    
+  # NGCz3
+  bsig8_NGCz3:
+    prior:
+      dist: uniform
+      min:  0.5
+      max:  3.0
+    ref:
+      dist:  norm
+      loc:   1.6208267
+      scale: 0.1
+    latex: (1+b_1)\sigma_8
+  b2_NGCz3:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 10.
+    ref:
+      dist:  norm
+      loc:   -2.3252356
+      scale: 0.5
+    latex: b_2
+  bs_NGCz3:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 10.0
+    ref:
+      dist:  norm
+      loc:   0.43768367
+      scale: 0.5
+    latex: b_s
+  alpha0_NGCz3:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 100.
+    ref:
+      dist:  norm
+      loc:    0.80253227 
+      scale: 0.5
+    latex: \alpha_0
+  alpha2_NGCz3:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 100.
+    ref:
+      dist:  norm
+      loc:   1.4637603
+      scale: 0.5
+    latex: \alpha_2
+  SN0_NGCz3:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 3000.
+    ref:
+      dist:  norm
+      loc:   140.57248
+      scale: 100.
+    latex: SN_0
+  SN2_NGCz3:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 5e5
+    ref:
+      dist:  norm
+      loc:   26569.205
+      scale:  1e4
+    latex: SN_2
+
+  # NGCz1 sample
+  bsig8_NGCz1:
+    prior:
+      dist: uniform
+      min:  0.5
+      max:  3.0
+    ref:
+      dist:  norm
+      loc:   1.6208267
+      scale: 0.1
+    latex: (1+b_1)\sigma_8
+  b2_NGCz1:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 10.
+    ref:
+      dist:  norm
+      loc:   -2.3252356
+      scale: 0.5
+    latex: b_2
+  bs_NGCz1:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 10.0
+    ref:
+      dist:  norm
+      loc:   0.43768367
+      scale: 0.5
+    latex: b_s
+  alpha0_NGCz1:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 100.
+    ref:
+      dist:  norm
+      loc:    0.80253227 
+      scale: 0.5
+    latex: \alpha_0
+  alpha2_NGCz1:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 100.
+    ref:
+      dist:  norm
+      loc:   1.4637603
+      scale: 0.5
+    latex: \alpha_2
+  SN0_NGCz1:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 3000.
+    ref:
+      dist:  norm
+      loc:   140.57248
+      scale: 100.
+    latex: SN_0
+  SN2_NGCz1:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 5e5
+    ref:
+      dist:  norm
+      loc:   26569.205
+      scale:  1e4
+    latex: SN_2
+    
+sampler:
+  evaluate:
+timing: True
+output: chains/test_boss_lik
+stop_on_error: True
+#sampler:
+#  mcmc:
+    #covmat: auto
+#    learn_proposal: True
+#    learn_proposal_Rminus1_max: 10.
+#    output_every: 60s
+#    measure_speeds: False
+#    max_tries: 500
+#    drag: False
+#    oversample_power: 0.4
+#    proposal_scale: 1.5
+#    Rminus1_stop: 0.005
+#    blocking:
+#      - [ 1, [logA, omch2, H0]]
+#      - [30, [bsig8,b2,bs,alpha0,alpha2,SN0,SN2]]
+#output: chains/test_boss_lik
+#timing: True
+#stop_on_error: True
