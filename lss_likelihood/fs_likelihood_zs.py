@@ -6,9 +6,6 @@ from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 
 from linear_theory import*
 
-import sys
-sys.path.append('/global/homes/s/sfschen/Python/velocileptors/')
-
 from velocileptors.LPT.lpt_rsd_fftw import LPT_RSD
 from velocileptors.Utils.spherical_bessel_transform import SphericalBesselTransform as SBT
 
@@ -56,9 +53,10 @@ class FSLikelihood(Likelihood):
         fs_thy  = self.fs_predict()
         fs_obs  = self.fs_observe(fs_thy)
 
-        obs = fs_obs
+        diff = self.dd - fs_obs
         
-        chi2 = np.dot(self.dd-obs,np.dot(self.cinv,self.dd-obs))
+        chi2 = np.dot(diff,np.dot(self.cinv,diff))
+        #print('diff', self.sample_name, diff[:20])
         #
         return(-0.5*chi2)
         #
@@ -110,6 +108,7 @@ class FSLikelihood(Likelihood):
         # Copy it and save the inverse.
         self.cov  = cov
         self.cinv = np.linalg.inv(self.cov)
+        #print(self.sample_name, np.diag(self.cinv)[:10])
         # Finally load the window function matrix.
         self.matM = np.loadtxt(self.fs_matMfn)
         self.matW = np.loadtxt(self.fs_matWfn)
@@ -137,11 +136,11 @@ class FSLikelihood(Likelihood):
         stoch = [sn0, sn2, 0]
         bvec = bias + cterm + stoch
         
-        print(self.zstr, b1, sig8)
+        #print(self.zstr, b1, sig8)
         
         kv, p0, p2, p4 = modPTs[self.zstr].combine_bias_terms_pkell(bvec)
         
-        np.savetxt('pells_' + self.zstr + '.txt',[kv,p0,p2,p4])
+        #np.savetxt('pells_' + self.zstr + '_' + self.sample_name + '.txt',[kv,p0,p2,p4])
         
         # Put a point at k=0 to anchor the low-k part of the Spline.
         kv,p0 = np.append([0.,],kv),np.append([0.0,],p0)
@@ -163,6 +162,9 @@ class FSLikelihood(Likelihood):
         expanded_model = np.matmul(self.matM, thy )
         # Convolve with window (true) −> (conv) see eq. 2.18
         convolved_model = np.matmul(self.matW, expanded_model )
+        
+        #np.savetxt('pobs_' + self.zstr + '_' + self.sample_name + '.txt',convolved_model)
+        
         # keep only the monopole and quadrupole
         convolved_model = convolved_model[self.fitiis]
     
@@ -229,11 +231,11 @@ class PT_pk_theory_zs(Theory):
             # Work out the A-P scaling to the fiducial cosmology.        
             Hz   = pp.get_Hubble(zfid)[0]/pp.get_Hubble(0)[0]
             chiz = pp.get_comoving_radial_distance(zfid)[0]*hub
-            print(zfid, Hz, Hz_fid, chiz, chiz_fid)
+            #print(zfid, Hz, Hz_fid, chiz, chiz_fid)
             apar,aperp = Hz_fid/Hz,chiz/chiz_fid
 
             modPTs[zstr] = LPT_RSD(ki, pi, kIR=0.2,\
-                        cutoff=10, extrap_min = -4, extrap_max = 3, N = 2000, threads=1, jn=5)
+                             cutoff=10, extrap_min = -4, extrap_max = 3, N = 2000, threads=8, jn=5)
         
             # this k vector is a custom-made monstrosity for our devilish aims
             kvec = np.concatenate( ([0.0005,],\

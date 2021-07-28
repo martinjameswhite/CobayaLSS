@@ -6,9 +6,6 @@ from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 
 from linear_theory import*
 
-import sys
-sys.path.append('/global/homes/s/sfschen/Python/velocileptors/')
-
 from velocileptors.LPT.lpt_rsd_fftw          import LPT_RSD
 from velocileptors.LPT.moment_expansion_fftw import MomentExpansion
 from velocileptors.Utils.spherical_bessel_transform import SphericalBesselTransform as SBT
