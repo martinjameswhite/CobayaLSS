@@ -1,0 +1,6 @@
+zfid:     0.38
+fs_datfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/boss_data/pk/pk_SGC_z1.dat
+#covfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/covariances/cov_fs_NGC_z3.dat
+covfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/C_2048_BOSS_DR12_SGC_z1_V6C_1_1_1_1_1_10_200_200_prerecon.matrix.gz
+fs_matMfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/M_BOSS_DR12_SGC_z1_V6C_1_1_1_1_1_1200_2000.matrix.gz
+fs_matWfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/W_BOSS_DR12_SGC_z1_V6C_1_1_1_1_1_10_200_2000_averaged_v1.matrix.gz
