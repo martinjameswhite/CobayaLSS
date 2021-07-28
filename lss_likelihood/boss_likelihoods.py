@@ -9,5 +9,5 @@ class NGCZ1(FSLikelihood):
 class SGCZ3(FSLikelihood):
     pass
 
-class SGCZ3(FSLikelihood):
+class SGCZ1(FSLikelihood):
     pass
