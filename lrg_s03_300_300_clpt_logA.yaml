@@ -104,12 +104,12 @@ params:
   smag:
     prior:
       dist: norm
-      loc:   1.00
-      scale: 0.15
+      loc:   0.961
+      scale: 0.100
     ref:
       dist:  norm
-      loc:   1.00
-      scale: 0.10
+      loc:   0.961
+      scale: 0.050
     latex: s_{\mu}
 sampler:
   mcmc:
