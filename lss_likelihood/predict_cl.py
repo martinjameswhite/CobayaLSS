@@ -24,7 +24,13 @@ class LPTPowerSpectra():
         cleft  = self.cleft
         kk,pgg = cleft.combine_bias_terms_pk(b1,b2,bs,b3,alpha_a,sn)
         kk,pgm = cleft.combine_bias_terms_pk_crossmatter(b1,b2,bs,b3,alpha_x)
-        return((kk,pgg,pgm,self.cleft.pktable[:,1]))
+        # Using linear theory alone underestimates P_mm at "medium k" so
+        # put in a fixed EFT component as a workaround.  Ideally alpha will
+        # depend upon Plin(k~knl), but for now it is fixed.
+        zel = cleft.pktable[:,-1]
+        alp = 4.0
+        pmm = cleft.pktable[:,1] + alp*kk**2*zel
+        return((kk,pgg,pgm,pmm))
         #
     def __init__(self,klin,plin):
         """klin,plin: Arrays containing Plinear [Mpc/h units]."""
