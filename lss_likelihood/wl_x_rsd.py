@@ -28,6 +28,8 @@ class HarmonicSpaceWLxRSD(Likelihood):
     nchi_proj: int
     emulator_weights: Optional[Dict[str, str]]
     use_samples: Optional[Union[Sequence, np.ndarray]]
+    zstar: Optional[float]
+    halofit_pmm: bool
 
     # k = convergence
     # d = (galaxy) density
@@ -58,6 +60,9 @@ class HarmonicSpaceWLxRSD(Likelihood):
         self.compute_p4 = False
         self.cell_emulators = False
         self.pell_emulators = False
+
+        if not hasattr(self, zstar):
+            self.zstar = 1098.
         self.load_data()
         self.setup_projection()
 
@@ -220,7 +225,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
             if i not in self.use_samples:
                 continue
             dndz = Spline(self.nz_d['z'],
-                          self.nz_d['nz{}'.format(i)])(self.z)
+                          self.nz_d['nz{}'.format(i)], ext=0)(self.z)
             aps = AngularPowerSpectra(self.z, dndz,
                                       Nchi=self.nchi_proj)
             self.projection_models.append(aps)
@@ -237,7 +242,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                     reqs.update({'eft_spectrum_interpolator': {'z': self.z}})
             else:
                 reqs.update({'logA': None, 'ns': None,
-                            'H0': None, 'w': None,
+                             'H0': None, 'w': None,
                              'ombh2': None, 'omch2': None})
 
             z = np.concatenate([self.z, [1098.]])
@@ -245,6 +250,10 @@ class HarmonicSpaceWLxRSD(Likelihood):
                          'Hubble': {'z': self.z},
                          'H0': None,
                          'omegam': None})
+            if self.halofit_pmm:
+                reqs.update({'Pk_interpolator': {'k_max': 10,
+                                                 'z': self.z,
+                                                 'nonlinear': True}})
 
         if self.compute_pell:
             if not self.pell_emulators:
@@ -254,7 +263,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 reqs['pt_pk_ell_model']['hz_fid'] = self.hz_fid
             else:
                 reqs.update({'logA': None, 'ns': None,
-                            'H0': None, 'w': None,
+                             'H0': None, 'w': None,
                              'ombh2': None, 'omch2': None})
 
         return reqs
@@ -292,6 +301,45 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
         return p
 
+    def combine_cleft_bias_terms_pk(self, kv, arr, b1, b2, bs, b3, alpha, sn):
+        '''
+        Combine all the bias terms into one power spectrum,
+        where alpha is the counterterm and sn the shot noise/stochastic contribution.
+
+        Three options, for
+
+        (1) Full one-loop bias expansion (third order bias)
+        (2) only quadratic bias, including shear
+        (3) only density bias
+
+        If (2) or (3), i.e. the class is set such that shear=False or third_order=False then the bs
+        and b3 parameters are not used.
+
+        '''
+        if self.third_order:
+            bias_monomials = np.array(
+                [1, b1, b1**2, b2, b1*b2, b2**2, bs, b1*bs, b2*bs, bs**2, b3, b1*b3])
+        elif self.shear:
+            bias_monomials = np.array(
+                [1, b1, b1**2, b2, b1*b2, b2**2, bs, b1*bs, b2*bs, bs**2])
+        else:
+            bias_monomials = np.array([1, b1, b1**2, b2, b1*b2, b2**2])
+
+        za = arr[:, -1]
+        pktemp = np.copy(arr)[:, 1:-1]
+
+        res = np.sum(pktemp * bias_monomials, axis=1) + alpha*kv**2 * za + sn
+
+        return res
+
+    def combine_cleft_bias_terms_pk_crossmatter(self, kv, arr, b1, b2, bs, b3, alpha):
+        """A helper function to return P_{gm}, which is a common use-case."""
+        ret = arr[:, 1]+0.5*b1*arr[:, 2] +\
+            0.5*b2*arr[:, 4]+0.5*bs*arr[:, 7] +\
+            0.5*b3*arr[:, 11] +\
+            alpha*kv**2*arr[:, 13]
+        return ret
+
     def combine_pkell_spectra(self, bvec, pktable):
         '''
         Returns pell, assuming AP parameters from input p{ell}ktable
@@ -312,8 +360,9 @@ class HarmonicSpaceWLxRSD(Likelihood):
         if self.compute_cell:
 
             # do I need a little h here?
+            h = self.provider.get_param('H0') / 100
             z = np.concatenate([self.z, [1098.]])
-            chiz = self.provider.get_comoving_radial_distance(z)
+            chiz = self.provider.get_comoving_radial_distance(z) * h
             chistar = chiz[-1]
             chiz = chiz[:-1]
             omega_m = self.provider.get_param('omegam')
@@ -328,6 +377,10 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 else:
                     cell_spec_interpolator = self.provider.get_result(
                         'eft_spectrum_interpolator')
+
+                if self.halofit_pmm:
+                    pmm_interpolator = self.provider.get_result(
+                        'Pk_interpolator')
 
                 n_spec_cell = len(cell_spec_interpolator)
                 self.rs_power_spectra = np.zeros(
@@ -355,15 +408,28 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
                     spectra = np.zeros((n_spec_cell, self.nk, self.nz_proj))
                     for j in range(n_spec_cell):
-                        spectra[j, ...] = cell_spec_interpolator[j].P(
-                            self.z, self.k).T
+                        if j == 0 & self.halofit_pmm:
+                            spectra[j, ...] = pmm_interpolator.P(
+                                self.z, self.k).T
+                        else:
+                            spectra[j, ...] = cell_spec_interpolator[j].P(
+                                self.z, self.k).T
 
-                    pmm = spectra[0, ...]
-                    pdm = self.combine_real_space_spectra(
-                        self.k, spectra, bias_params, cross=True)
-                    pdd = self.combine_real_space_spectra(
-                        self.k, spectra, bias_params, cross=False)
-                    k = self.k
+                    if self.heft:
+                        pmm = spectra[0, ...]
+                        pdm = self.combine_real_space_spectra(
+                            self.k, spectra, bias_params, cross=True)
+                        pdd = self.combine_real_space_spectra(
+                            self.k, spectra, bias_params, cross=False)
+                        k = self.k
+                    else:
+                        pmm = self.combine_cleft_bias_terms_pk(
+                            self.k, spectra, 0, 0, 0, 0, bk, 0)
+                        pdm = self.combine_cleft_bias_terms_pk_crossmatter(
+                            self.k, spectra, b1, b2, bs, 0.0, bk)
+                        pdd = self.combine_cleft_bias_terms_pk(
+                            self.k, spectra, b1, b2, bs, 0.0, bk, sn)
+
                 else:
                     params = cosmo_params + bias_params
 
@@ -399,7 +465,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 # just interpolate onto desired ell for now.
                 # need to implement windowing.
                 if self.compute_c_kk:
-                    Ckk_spline = interp1d(np.log10(lval), np.arcsinh(Ckk),
+                    Ckk_spline = interp1d(lval, np.arcsinh(Ckk),
                                           fill_value='extrapolate')
                     self.spectrum_info['c_kk']['{}_0_model'.format(i)] = np.sinh(Ckk_spline(
                         np.log10(self.spectrum_info['c_kk']['separation'])))
