@@ -4,6 +4,7 @@ zmin_proj: 0.0
 zmax_proj: 2.0
 nz_proj: 21
 nchi_proj: 101
+halofit_pmm: False
 
 params:
   b1_0:
