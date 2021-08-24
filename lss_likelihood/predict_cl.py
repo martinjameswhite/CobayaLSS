@@ -24,11 +24,13 @@ class LPTPowerSpectra():
         cleft  = self.cleft
         kk,pgg = cleft.combine_bias_terms_pk(b1,b2,bs,b3,alpha_a,sn)
         kk,pgm = cleft.combine_bias_terms_pk_crossmatter(b1,b2,bs,b3,alpha_x)
-        # Using linear theory alone underestimates P_mm at "medium k" so
-        # put in a fixed EFT component as a workaround.  Ideally alpha will
-        # depend upon Plin(k~knl), but for now it is fixed.
+        # Using PT alone underestimates P_mm at "medium k" so  put in an EFT
+        # component as a workaround.  Ideally alpha will be fit carefullly, but
+        # for now it just depends upon Plin(k~knl) using a power-law that is
+        # "close" to HaloFit for popular LCDM models.  This is very rough!
         zel = cleft.pktable[:,-1]
-        alp = 4.0
+        pfid= np.interp(0.2,self.klin,self.plin)
+        alp = 3*(pfid/1e3)**2.2
         pmm = cleft.pktable[:,1] + alp*kk**2*zel
         return((kk,pgg,pgm,pmm))
         #
