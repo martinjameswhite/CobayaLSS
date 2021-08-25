@@ -255,9 +255,11 @@ class JointLikelihood(Likelihood):
         xi0t += polyval(1/rr0,[M0,M1,M2])
         xi2t += polyval(1/rr0,[Q0,Q1,Q2])
         
-        self.xiells = np.zeros( (len(xi0t), 2) )
-        self.xiells[:,0] = xi0t
-        self.xiells[:,1] = xi2t
+        rrange = (rr0 > 60) * (rr0 < 150)
+        
+        self.xiells = np.zeros( (len(xi0t[rrange]), 2) )
+        self.xiells[:,0] = xi0t[rrange]
+        self.xiells[:,1] = xi2t[rrange]
         
         #np.savetxt('xitest.dat', np.array([rr0,xi0t,xi2t]).T)
         
