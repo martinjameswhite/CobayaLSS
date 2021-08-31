@@ -155,8 +155,8 @@ class PkLikelihood(Likelihood):
         obs  = self.observe(thy)
         chi2 = np.dot(self.dd-obs,np.dot(self.cinv,self.dd-obs))
         # Let's save these in case we want to inspect them later.
-        self.theory   = thy
-        self.observed = obs
+        self.last_thy = thy
+        self.last_obs = obs
         #
         return(-0.5*chi2)
         #
