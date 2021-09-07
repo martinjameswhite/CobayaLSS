@@ -22,6 +22,7 @@ class HEFTCalculator(Theory):
     heft: bool
     z: Union[Sequence, np.ndarray]
     use_pcb: bool
+    third_order: bool
 
     def initialize(self):
         """called from __init__ to initialize"""
@@ -48,7 +49,11 @@ class HEFTCalculator(Theory):
                              np.log10(self.kmax),
                              self.nk)
 
-        self.nspec = 10
+        if self.kecleft:
+            self.nspec = 12
+        else:
+            self.nspec = 13
+            
         self.get_eft_interpolator = False
         self.get_heft_interpolator = False
 
@@ -186,24 +191,24 @@ class HEFTCalculator(Theory):
             cleftobj = RKECLEFT(self.k, pk)
 
             for i, z in enumerate(self.z):
-                cleftobj.make_ptable(D=D[i], kmin=k[0], kmax=k[-1], nk=1000)
+                cleftobj.make_ptable(D=D[i], kmin=k[0], kmax=k[-1], nk=self.nk)
                 cleftpk = cleftobj.pktable.T
                 state['eft_spectrum_grid'][i, ...] = cleftpk[1:self.nspec+1, :]
 
         else:
             for i, z in enumerate(self.z):
                 pk = pk_lin_interp.P(z, self.k * h) * h**3
-                cleftobj = CLEFT(self.k, pk, N=2700, jn=10, cutoff=1)
-                cleftobj.make_ptable()
+                cleftobj = CLEFT(self.k, pk, N=2700, jn=10, cutoff=1, third_order=self.third_order)
+                cleftobj.make_ptable(kmin=k[0], kmax=k[-1], nk=self.nk)
                 cleftpk = cleftobj.pktable[:, 1:self.nspec+1].T
 
                 # Different cutoff for other spectra, because otherwise different
                 # large scale asymptote
 
-                cleftobj = CLEFT(k, pk, N=2700, jn=5, cutoff=10)
-                cleftobj.make_ptable()
+                cleftobj = CLEFT(self.k, pk, N=2700, jn=5, cutoff=10, third_order=self.third_order)
+                cleftobj.make_ptable(kmin=k[0], kmax=k[-1], nk=self.nk)
 
-                cleftpk[:, 2:] = cleftobj.pktable[:, 4:self.nspec+1].T
+                cleftpk[2:,:] = cleftobj.pktable[:, 3:self.nspec+1].T
                 state['eft_spectrum_grid'][i, ...] = cleftpk
 
         state['eft_spectrum_grid'][:, 1, :] /= 2
