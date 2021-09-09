@@ -1,0 +1,25 @@
+zfid:     0.38
+
+fs_sample_names:
+- NGCz1
+- SGCz1
+
+fs_datfns: 
+- /global/cscratch1/sd/sfschen/boss_fixedb_bias/boss_data/pk/pk_NGC_z1.dat
+- /global/cscratch1/sd/sfschen/boss_fixedb_bias/boss_data/pk/pk_SGC_z1.dat
+
+bao_sample_names:
+- z1
+
+bao_datfns: 
+- /global/cscratch1/sd/sfschen/boss_fixedb_bias/boss_data/xi/z1.xi
+
+covfn: /global/cscratch1/sd/sfschen/boss_fixedb_bias/covariances/cov_joint_NGCSGCXi_z1.dat
+
+fs_matMfns: 
+- /global/cscratch1/sd/sfschen/boss_fixedb_bias/M_BOSS_DR12_NGC_z1_V6C_1_1_1_1_1_1200_2000.matrix.gz
+- /global/cscratch1/sd/sfschen/boss_fixedb_bias/M_BOSS_DR12_SGC_z1_V6C_1_1_1_1_1_1200_2000.matrix.gz
+
+fs_matWfns: 
+- /global/cscratch1/sd/sfschen/boss_fixedb_bias/W_BOSS_DR12_NGC_z1_V6C_1_1_1_1_1_10_200_2000_averaged_v1.matrix.gz
+- /global/cscratch1/sd/sfschen/boss_fixedb_bias/W_BOSS_DR12_SGC_z1_V6C_1_1_1_1_1_10_200_2000_averaged_v1.matrix.gz
