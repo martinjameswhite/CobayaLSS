@@ -48,7 +48,7 @@ class AngularPowerSpectra():
         Cshot = self.fchi**2/self.chival**2
         Cshot = simps(Cshot,x=self.chival)
         return(Cshot)
-    def __init__(self,OmM,chi_of_z,E_of_z,dndz,Nchi=101,Nz=251):
+    def __init__(self,OmM,chi_of_z,E_of_z,dndz,Nchi=201,Nz=251):
         """Set up the class.
             OmM:  The value of Omega_m(z=0) for the cosmology.
             chi_of_z: A function returning radial distance in Mpc/h given z.
@@ -59,17 +59,17 @@ class AngularPowerSpectra():
         self.Nchi = Nchi
         self.OmM  = OmM
         self.OmX  = 1.0-OmM
-        self.zmin = dndz[ 0,0]
+        self.zmin = np.min([0.05,dndz[0,0]])
         self.zmax = dndz[-1,0]
         self.zz   = np.linspace(self.zmin,self.zmax,Nz)
-        self.dndz = Spline(dndz[:,0],dndz[:,1])(self.zz)
+        self.dndz = Spline(dndz[:,0],dndz[:,1],ext=1)(self.zz)
         # Normalize dN/dz.
         self.dndz = self.dndz/simps(self.dndz,x=self.zz)
         # Set up the chi(z) array and z(chi) spline.
         self.chiz = chi_of_z(self.zz)
         self.zchi = Spline(self.chiz,self.zz)
         # Work out W(chi) for the objects whose dNdz is supplied.
-        chimin    = np.min(self.chiz) + 1e-5
+        chimin    = np.min(self.chiz)
         chimax    = np.max(self.chiz)
         self.chival= np.linspace(chimin,chimax,Nchi)
         zval      = self.zchi(self.chival)
@@ -99,7 +99,7 @@ class AngularPowerSpectra():
         pars   = np.array(cpars+bparsX+[self.zeff])
         Pgm    = Spline(*PgmEmu(pars))
         pars   = np.array(cpars+[self.zeff])
-        Pmm    = Spline(*PmmEmu(pars))
+        Pmm    = Spline(*PmmEmu(pars),ext=1) # Extrapolate with zeros.
         # Work out the integrands for C_l^{gg} and C_l^{kg}.
         for i,chi in enumerate(self.chival):
             kval     = (ell+0.5)/chi        # The vector of k's.
