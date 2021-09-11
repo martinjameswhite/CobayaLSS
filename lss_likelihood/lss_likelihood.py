@@ -259,6 +259,8 @@ class PT_xi_theory(Theory):
         """What we need in order to provide xi_ell."""
         zg  = np.linspace(0,self.zfid,8,endpoint=True)
         req = {\
+               'omegam': None,\
+               'omnuh2': None,\
                'Pk_interpolator': {'k_max': 30,'z': zg,\
                                    'nonlinear': False,\
                                    'vars_pairs': [['delta_nonu','delta_nonu']]},\
@@ -277,12 +279,15 @@ class PT_xi_theory(Theory):
         pp   = self.provider
         zfid = self.zfid
         # Get cosmological parameters
+        OmM = pp.get_param('omegam')
         hub  = pp.get_Hubble(0)[0]/100.
-        s8   = pp.get_sigma8_z(self.zfid)[0]
-        fs8  = pp.get_fsigma8(self.zfid)[0]
-        ff   = fs8 / s8
-        # and Plin.
-        ki   = np.logspace(-3.0,1.5,750)
+        omnuh2 = pp.get_param('omnuh2')
+        fnu =  omnuh2/ hub**2 /OmM
+        
+        ff   = f_of_a(1/(1.+self.zfid), OmegaM=OmM) * (1 - 0.6 * fnu)
+
+        #ki   = np.logspace(-3.0,1.5,750)
+        ki   = np.logspace(-3.0,1.0,200)
         pi   = pp.get_Pk_interpolator(nonlinear=False,var_pair=['delta_nonu','delta_nonu'])
         pi   = pi.P(self.zfid,ki*hub)*hub**3
         # Work out the A-P scaling to the fiducial cosmology.
