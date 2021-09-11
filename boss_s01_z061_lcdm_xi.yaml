@@ -25,12 +25,13 @@ likelihood:
 params:
   logA:
     prior:
-      min: 1.61
-      max: 3.91
+      dist: uniform
+      min:  1.61
+      max:  3.91
     ref:
-      dist: norm
-      loc:  3.00
-      scale: 0.01
+      dist:  norm
+      loc:   2.85
+      scale: 0.05
     drop: True
     latex: \log(10^{10} A_\mathrm{s})
   As:
@@ -40,30 +41,32 @@ params:
     value: 0.9667
     latex: n_\mathrm{s}
   ombh2:
-    value: 0.022
+    value: 0.02242
     latex: \omega_b
   #omnuh2:
     #value: 0.0006442
   omch2:
     prior:
-      min: 0.10
-      max: 0.14
+      dist: uniform
+      min:  0.05
+      max:  0.20
     ref:
-      dist: norm
-      loc:   0.119
-      scale: 0.001
+      dist:  norm
+      loc:   0.12
+      scale: 0.01
     latex: \omega_c
-  thetastar:
-    value: 0.0104109
-    latex: \theta_\star
+  #thetastar:
+  #  value: 0.0104109
+  #  latex: \theta_\star
   H0:
-    #prior:
-    #  min: 60.0
-    #  max: 80.0
-    #ref:
-    #  dist: norm
-    #  loc:  68.0
-    #  scale: 1.0
+    prior:
+      dist: uniform
+      min:  60.0
+      max:  80.0
+    ref:
+      dist:  norm
+      loc:   68.5
+      scale: 1.0
     latex: H_0
   omegam:
     latex: \Omega_\mathrm{m}
@@ -76,47 +79,47 @@ params:
       max:  3.0
     ref:
       dist:  norm
-      loc:   1.60
+      loc:   1.53
       scale: 0.05
     latex: (1+b_1)\sigma_8
   b2:
     prior:
       dist:  norm
       loc:   0.0
-      scale: 15.
+      scale: 10.
     ref:
       dist:  norm
-      loc:   0.0
-      scale: 1.0
+      loc:  -0.8
+      scale: 0.1
     latex: b_2
   bs:
     prior:
       dist:  norm
-      loc:   0.0
-      scale: 3.0
+      loc:    0.0
+      scale: 10.0
     ref:
       dist:  norm
-      loc:   0.0
-      scale: 1.0
+      loc:   3.9
+      scale: 0.1
     latex: b_s
   alpha0:
     prior:
       dist:  norm
       loc:   0.0
-      scale: 50.
+      scale: 100
     ref:
       dist:  norm
-      loc:   1.0
+      loc:   0.0
       scale: 5.0
     latex: \alpha_0
   alpha2:
     prior:
       dist:  norm
       loc:   0.0
-      scale: 50.
+      scale: 100
     ref:
       dist:  norm
-      loc:   1.0
+      loc:   0.0
       scale: 5.0
     latex: \alpha_2
 sampler:
@@ -132,7 +135,7 @@ sampler:
     proposal_scale: 1.5
     Rminus1_stop: 0.01
     blocking:
-      - [ 1, [logA,omch2]]
+      - [ 1, [logA,omch2,H0]]
       - [10, [bsig8,b2,bs,alpha0,alpha2]]
 output: chains/boss_s01_z061_lcdm_xi
 timing: True
