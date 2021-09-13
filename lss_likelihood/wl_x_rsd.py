@@ -61,7 +61,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
         self.cell_emulators = False
         self.pell_emulators = False
 
-        if not hasattr(self, zstar):
+        if not hasattr(self, 'zstar'):
             self.zstar = 1098.
         self.load_data()
         self.setup_projection()
@@ -305,39 +305,22 @@ class HarmonicSpaceWLxRSD(Likelihood):
         '''
         Combine all the bias terms into one power spectrum,
         where alpha is the counterterm and sn the shot noise/stochastic contribution.
-
-        Three options, for
-
-        (1) Full one-loop bias expansion (third order bias)
-        (2) only quadratic bias, including shear
-        (3) only density bias
-
-        If (2) or (3), i.e. the class is set such that shear=False or third_order=False then the bs
-        and b3 parameters are not used.
-
         '''
-        if self.third_order:
-            bias_monomials = np.array(
-                [1, b1, b1**2, b2, b1*b2, b2**2, bs, b1*bs, b2*bs, bs**2, b3, b1*b3])
-        elif self.shear:
-            bias_monomials = np.array(
-                [1, b1, b1**2, b2, b1*b2, b2**2, bs, b1*bs, b2*bs, bs**2])
-        else:
-            bias_monomials = np.array([1, b1, b1**2, b2, b1*b2, b2**2])
+        bias_monomials = np.array(
+                [1, 2*b1, b1**2, b2, b1*b2, b2**2, bs, b1*bs, b2*bs, bs**2, b3, b1*b3])
+        za = arr[-1,:]
+        pktemp = np.copy(arr)[:-1,...]
 
-        za = arr[:, -1]
-        pktemp = np.copy(arr)[:, 1:-1]
-
-        res = np.sum(pktemp * bias_monomials, axis=1) + alpha*kv**2 * za + sn
+        res = np.sum(pktemp * bias_monomials[:,np.newaxis,np.newaxis], axis=0) + alpha*kv[:,np.newaxis]**2 * za + sn
 
         return res
 
     def combine_cleft_bias_terms_pk_crossmatter(self, kv, arr, b1, b2, bs, b3, alpha):
         """A helper function to return P_{gm}, which is a common use-case."""
-        ret = arr[:, 1]+0.5*b1*arr[:, 2] +\
-            0.5*b2*arr[:, 4]+0.5*bs*arr[:, 7] +\
-            0.5*b3*arr[:, 11] +\
-            alpha*kv**2*arr[:, 13]
+        ret = arr[0,:]+b1*arr[1,:] +\
+            0.5*b2*arr[3,:]+0.5*bs*arr[6,:] +\
+            0.5*b3*arr[10,:] +\
+            alpha*kv[:,np.newaxis]**2*arr[12,:]
         return ret
 
     def combine_pkell_spectra(self, bvec, pktable):
@@ -349,7 +332,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
         bias_monomials = np.array([1, b1, b1**2, b2, b1*b2, b2**2, bs, b1*bs,
                                    b2*bs, bs**2, b3, b1*b3, alpha0, alpha2,
                                    alpha4, alpha6, sn, sn2, sn4])
-        p = np.sum(pktable * bias_monomials, axis=1)
+        p = np.sum(pktable * bias_monomials[:,np.newaxis,np.newaxis], axis=0)
 
         return p
 
@@ -379,8 +362,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                         'eft_spectrum_interpolator')
 
                 if self.halofit_pmm:
-                    pmm_interpolator = self.provider.get_result(
-                        'Pk_interpolator')
+                    pmm_interpolator = self.provider.get_Pk_interpolator(nonlinear=True)
 
                 n_spec_cell = len(cell_spec_interpolator)
                 self.rs_power_spectra = np.zeros(
@@ -408,9 +390,9 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
                     spectra = np.zeros((n_spec_cell, self.nk, self.nz_proj))
                     for j in range(n_spec_cell):
-                        if j == 0 & self.halofit_pmm:
+                        if (j == 0) & self.halofit_pmm:
                             spectra[j, ...] = pmm_interpolator.P(
-                                self.z, self.k).T
+                                self.z, self.k * h).T * h**3
                         else:
                             spectra[j, ...] = cell_spec_interpolator[j].P(
                                 self.z, self.k).T
@@ -423,7 +405,10 @@ class HarmonicSpaceWLxRSD(Likelihood):
                             self.k, spectra, bias_params, cross=False)
                         k = self.k
                     else:
-                        pmm = self.combine_cleft_bias_terms_pk(
+                        if self.halofit_pmm:
+                            pmm = spectra[0, ...]
+                        else:
+                            pmm = self.combine_cleft_bias_terms_pk(
                             self.k, spectra, 0, 0, 0, 0, bk, 0)
                         pdm = self.combine_cleft_bias_terms_pk_crossmatter(
                             self.k, spectra, b1, b2, bs, 0.0, bk)
@@ -448,13 +433,13 @@ class HarmonicSpaceWLxRSD(Likelihood):
                     k, pdm = self.emulators['p_dm'](param_grid)
                     k, pdd = self.emulators['p_dd'](param_grid)
 
-                pmm_spline = PowerSpectrumInterpolator(self.z, k, pmm.T)
+                pmm_spline = PowerSpectrumInterpolator(self.z, self.k, pmm.T)
                 self.rs_power_spectra[i, :, :, 0] = pmm.T
 
-                pdm_spline = PowerSpectrumInterpolator(self.z, k, pdm.T)
+                pdm_spline = PowerSpectrumInterpolator(self.z, self.k, pdm.T)
                 self.rs_power_spectra[i, :, :, 1] = pdm.T
 
-                pdd_spline = PowerSpectrumInterpolator(self.z, k, pdd.T)
+                pdd_spline = PowerSpectrumInterpolator(self.z, self.k, pdd.T)
                 self.rs_power_spectra[i, :, :, 2] = pdd.T
 
                 lval, Cdd, Cdk, Ckk = self.projection_models[i](

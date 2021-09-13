@@ -5,6 +5,7 @@ zmax_proj: 2.0
 nz_proj: 21
 nchi_proj: 101
 halofit_pmm: False
+zstar: 1098.0
 
 params:
   b1_0:

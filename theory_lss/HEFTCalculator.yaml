@@ -1,7 +1,7 @@
 
 kmin: 1e-3
 kmax: 1.0
-nk: 1000
+nk: 200
 zmin: 0.0
 zmax: 0.7
 nz: 40
@@ -9,3 +9,4 @@ z: []
 kecleft : True
 heft: True
 use_pcb: False
+third_order: True
