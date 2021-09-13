@@ -89,18 +89,18 @@ params:
       scale: 10.
     ref:
       dist:  norm
-      loc:  -0.8
-      scale: 0.1
+      loc:   0.0
+      scale: 1.0
     latex: b_2
   bs:
     prior:
       dist:  norm
-      loc:    0.0
-      scale: 10.0
+      loc:   0.0
+      scale: 3.0
     ref:
       dist:  norm
-      loc:   3.9
-      scale: 0.1
+      loc:   0.0
+      scale: 1.0
     latex: b_s
   alpha0:
     prior:
