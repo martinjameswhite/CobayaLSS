@@ -23,13 +23,13 @@ likelihood:
 params:
   logA:
     prior:
-      min: 1.61
-      max: 3.91
+      dist: uniform
+      min:  1.61
+      max:  3.91
     ref:
-      dist: norm
-      loc: 3.05
-      scale: 0.001
-    proposal: 0.001
+      dist:  norm
+      loc:   2.85
+      scale: 0.05
     drop: True
     latex: \log(10^{10} A_\mathrm{s})
   ns:
@@ -41,7 +41,7 @@ params:
   #thetastar:
   #  value: 0.0104109
   ombh2:
-    value: 0.022
+    value: 0.02242
   omch2:
     value: 0.119
   As:
@@ -65,7 +65,7 @@ params:
     prior:
       dist:  norm
       loc:   0.0
-      scale: 15.
+      scale: 10.
     ref:
       dist:  norm
       loc:   0.0
@@ -85,21 +85,21 @@ params:
     prior:
       dist:  norm
       loc:   0.0
-      scale: 50.
+      scale: 100.
     ref:
       dist:  norm
-      loc:   1.0
-      scale: 5.0
+      loc:   0.0
+      scale: 10.
     latex: \alpha_0
   alpha2:
     prior:
       dist:  norm
       loc:   0.0
-      scale: 50.
+      scale: 100.
     ref:
       dist:  norm
-      loc:   1.0
-      scale: 5.0
+      loc:   0.0
+      scale: 10.
     latex: \alpha_2
 sampler:
   mcmc:
