@@ -306,10 +306,16 @@ class HarmonicSpaceWLxRSD(Likelihood):
         Combine all the bias terms into one power spectrum,
         where alpha is the counterterm and sn the shot noise/stochastic contribution.
         '''
+        pkarr = np.copy(arr)
+    
+        pkarr[1,:] *= 2
+        pkarr[5,:] *= 0.25
+        pkarr[6,:] *= 2
+        pkarr[7,:] *= 2
         bias_monomials = np.array(
-                [1, 2*b1, b1**2, b2, b1*b2, b2**2, bs, b1*bs, b2*bs, bs**2, b3, b1*b3])
-        za = arr[-1,:]
-        pktemp = np.copy(arr)[:-1,...]
+        	    [1, b1, b1**2, b2, b1*b2, b2**2, bs, b1*bs, b2*bs, bs**2, b3, b1*b3])
+        za = pkarr[-1,:]
+        pktemp = np.copy(pkarr)[:-1,...]
 
         res = np.sum(pktemp * bias_monomials[:,np.newaxis,np.newaxis], axis=0) + alpha*kv[:,np.newaxis]**2 * za + sn
 
@@ -317,10 +323,15 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
     def combine_cleft_bias_terms_pk_crossmatter(self, kv, arr, b1, b2, bs, b3, alpha):
         """A helper function to return P_{gm}, which is a common use-case."""
-        ret = arr[0,:]+b1*arr[1,:] +\
-            0.5*b2*arr[3,:]+0.5*bs*arr[6,:] +\
-            0.5*b3*arr[10,:] +\
-            alpha*kv[:,np.newaxis]**2*arr[12,:]
+        pkarr = np.copy(arr)
+        pkarr[1,:] *= 2
+        pkarr[5,:] *= 0.25
+        pkarr[6,:] *= 2
+        pkarr[7,:] *= 2        
+        ret = pkarr[0,:]+0.5*b1*pkarr[1,:] +\
+            0.5*b2*pkarr[3,:]+0.5*bs*pkarr[6,:] +\
+            0.5*b3*pkarr[10,:] +\
+            alpha*kv[:,np.newaxis]**2*pkarr[12,:]
         return ret
 
     def combine_pkell_spectra(self, bvec, pktable):
