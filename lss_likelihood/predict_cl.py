@@ -3,8 +3,6 @@
 # Code to compute angular power spectra using Limber's approximation.
 #
 import numpy as np
-import sys
-
 from scipy.integrate import simps
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 
@@ -12,39 +10,104 @@ from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 class AngularPowerSpectra():
     """Computes angular power spectra using the Limber approximation."""
 
-    def lagrange_spam(self, z):
-        """Returns the weights to apply to each z-slice to interpolate to z.
-           -- Not currently used, could be used if need P(k,z)."""
-        dz = self.zlist[:, None] - self.zlist[None, :]
-        singular = (dz == 0)
-        dz[singular] = 1.0
-        fac = (z - self.zlist) / dz
-        fac[singular] = 1.0
-        return(fac.prod(axis=-1))
-
-    def mag_bias_kernel(self, s, Nchi_mag=101):
+    def compute_mag_bias_kernels(self, Nchi_mag=101):
         """Returns magnification bias kernel if 's' is the slope of
            the number counts dlog10N/dm."""
-        zval = self.zchi(self.chival)
+
+        self.w_mag = []
+
         cmax = np.max(self.chival) * 1.1
-        def zupper(x): return np.linspace(x, cmax, Nchi_mag)
+        def zupper(x): return np.linspace(x, cmax, Nchi)
         chivalp = np.array(list(map(zupper, self.chival))).transpose()
         zvalp = self.zchi(chivalp)
-        dndz_n = np.interp(zvalp, self.zz, self.dndz, left=0, right=0)
-        Ez = self.E_of_z(zvalp)
-        g = (chivalp-self.chival[np.newaxis, :])/chivalp
-        g *= dndz_n*Ez/2997.925
-        g = self.chival * simps(g, x=chivalp, axis=0)
-        self.mag_kern = 1.5*(self.OmM)/2997.925**2*(1+zval)*g
 
-    def __init__(self, z, dndz, Nchi=101):
-        """Set up the class.
-            dndz: A numpy array containing dN/dz vs at z."""
+        for i in range(self.n_lens):
+            dndz_n = np.interp(
+                zvalp, self.zz, self.dndz_lens[i], left=0, right=0)
+            Ez = self.E_of_z(zvalp)
+            g = (chivalp-self.chival[np.newaxis, :])/chivalp
+            g *= dndz_n*Ez/2997.925
+            g = self.chival * simps(g, x=chivalp, axis=0)
+            self.w_mag[i] = 1.5*(self.OmM)/2997.925**2*(1+zval)*g
+
+    def compute_galaxy_convergence_kernels(self, Nchi=101):
+        self.w_k = []
+
+        cmax = np.max(self.chival) * 1.1
+        def zupper(x): return np.linspace(x, cmax, Nchi)
+        chivalp = np.array(list(map(zupper, self.chival))).transpose()
+        zvalp = self.zchi(chivalp)
+
+        for i in range(self.n_source):
+            dndz_n = np.interp(
+                zvalp, self.zz, self.dndz_source[i], left=0, right=0)
+            Ez = self.E_of_z(zvalp)
+            g = (chivalp-self.chival[np.newaxis, :])/chivalp
+            g *= dndz_n*Ez/2997.925
+            g = self.chival * simps(g, x=chivalp, axis=0)
+            self.w_k[i] = self.smag[i] * 1.5*(self.OmM)/2997.925**2*(1+zval)*g
+
+    def compute_galaxy_density_kernels(self, Nchi=101):
+        """Returns magnification bias kernel not including 's'
+           (the slope of the number counts dlog10N/dm)"""
+
+        self.w_d = []
+        self.zeff_d = []
+        ez = self.E_of_z(self.zz)
+
+        for i in range(self.n_lens):
+            self.w_d[i] = Spline(self.zz, self.dndz_lens[i] * ez)(self.zval)
+            self.w_d[i] /= simps(self.w_d[i], x=self.chival)
+            self.zeff_d[i] = simps(self.zval*self.w_d[i]
+                                   ** 2/self.chival**2, x=self.chival)
+            self.zeff_d[i] /= simps(self.w_d[i]**2 /
+                                    self.chival**2, x=self.chival)
+
+    def compute_galaxy_IA_kernels(self, Nchi=101):
+        """Returns magnification bias kernel not including 's'
+           (the slope of the number counts dlog10N/dm)"""
+
+        self.w_ia = []
+        ez = self.E_of_z(self.zz)
+
+        for i in range(self.n_source):
+            self.w_ia[i] = Spline(self.zz, self.dndz_source[i] * ez)(self.zval)
+            self.w_ia[i] /= simps(self.w_ia[i], x=self.chival)
+            self.w_ia *= a_ia * (1 + self.zval) / (1 +
+                                 0.62) ** eta_ia * 0.0134 / self.D(self.zval)
+
+    def compute_cmb_convergence_kernel(self, Nchi=101):
+        self.w_cmbk = 1.5*self.OmM*(1.0/2997.925)**2*(1+self.zval)
+        self.w_cmbk *= self.chival*(self.chistar-self.chival)/self.chistar
+
+    def __init__(self, z, dndz_lens, dndz_source, Nchi=101,
+                 d_x_cmbk=True, cmbk_x_cmbk=True):
+            """
+            Set up the class.
+            dndz_lens: A numpy array containing dN/dz vs z for all lens bins.
+            dndz_source: A numpy array containing dN/dz vs z for all source bins.
+            """
         # Copy the arguments, setting up the z-range.
         self.zz = z
-        self.dndz = dndz
-        # Normalize dN/dz.
-        self.dndz = self.dndz/simps(self.dndz, x=self.zz)
+        self.dndz_lens = dndz_lens
+        self.dndz_source = dndz_source
+        self.compute_d_x_cmbk = d_x_cmbk
+        self.compute_cmbk_x_cmbk = cmbk_x_cmbk
+
+        if self.dndz_lens is not None:
+            self.n_lens = len(self.dndz_lens)
+            for i in range(self.n_lens):
+                self.dndz_lens[i] = self.dndz_lens[i]/simps(self.dndz_lens[i], x=self.zz, axis=-1)
+       else:
+            self.n_lens = 0
+        
+        if self.dndz_source is not None:
+            self.n_source = len(dndz_source)
+            for i in range(self.n_source):
+                self.dndz_source[i] = self.dndz_source[i] / simps(self.dndz_source[i], x=self.zz, axis=-1)
+        else:
+            self.n_source = 0
+        
         self.chistar = None
         self.Nchi = Nchi
 
@@ -59,55 +122,89 @@ class AngularPowerSpectra():
         chimax = np.max(self.chiz)
         self.chival = np.linspace(chimin, chimax, self.Nchi)
         self.zval = self.zchi(self.chival)
-        self.fchi = Spline(self.zz, self.dndz * ez)(self.zval)
-        self.fchi /= simps(self.fchi, x=self.chival)
-        # and W(chi) for the CMB
         self.chistar = chistar
-        self.fcmb = 1.5*self.OmM*(1.0/2997.925)**2*(1+self.zval)
-        self.fcmb *= self.chival*(self.chistar-self.chival)/self.chistar
-        # Compute the effective redshift.
-        self.zeff = simps(self.zval*self.fchi**2/self.chival**2, x=self.chival)
-        self.zeff /= simps(self.fchi**2/self.chival**2, x=self.chival)
+
+        self.compute_cmb_convergence_kernel()
+        self.compute_galaxy_density_kernels()
+        self.compute_galaxy_convergence_kernels()
+        self.compute_mag_bias_kernels()
 
     def __call__(self, Pmm, Pgm, Pgg,
-                 chiz, ez, omega_m, chistar, smag=0.4,
-                 Nell=50, Lmax=1001):
+                 chiz, ez, omega_m, chistar, Dz, smag,
+                 a_ia, eta_ia, Nell=50, Lmax=1001):
         """Computes C_l^{gg} and C_l^{kg}."""
 
-        #recompute kernels if cosmology changed
+        self.a_ia = a_ia
+        self.eta_ia = eta_ia
+        self.Dz = Spline(self.zz, Dz)
+        self.smag = (5*smag-2.)        
+        
+        # recompute kernels if cosmology changed
         if chistar != self.chistar:
             self.set_geometry(chiz, ez, omega_m, chistar)
-            self.mag_bias_kernel(smag)  # Magnification bias kernel.
+        
 
-        fmag = self.mag_kern * (5*smag-2.)
         ell = np.logspace(1, np.log10(Lmax), Nell)  # More ell's are cheap.
-        Cgg = np.zeros((Nell, self.Nchi))
-        Ckg = np.zeros((Nell, self.Nchi))                
-        Ckk = np.zeros((Nell, self.Nchi))
+        Cdd = np.zeros((Nell, self.n_lens, self.Nchi))
+        Cdk = np.zeros((Nell, self.n_lens * self.n_source, self.Nchi))
+        Ckk = np.zeros((Nell, self.n_source * self.n_source, self.Nchi))
+        Cdcmbk = np.zeros((Nell, self.n_lens, self.Nchi))
+        Ccmbkcmbk = np.zeros((Nell, self.Nchi))
 
-        # Work out the integrands for C_l^{gg} and C_l^{kg}.
         for i, chi in enumerate(self.chival):
-            kval = (ell+0.5)/chi        # The vector of k's.
-            f1f2 = self.fchi[i]*self.fchi[i]/chi**2 * Pgg(self.zval[i],kval)
-            f1m2 = self.fchi[i] * fmag[i]/chi**2 * Pgm(self.zval[i],kval)
-            m1f2 = fmag[i]*self.fchi[i]/chi**2 * Pgm(self.zval[i],kval)
-            m1m2 = fmag[i] * fmag[i]/chi**2 * Pmm(self.zval[i],kval)
-            Cgg[:, i] = f1f2 + f1m2 + m1f2 + m1m2
-            f1f2 = self.fchi[i]*self.fcmb[i]/chi**2 * Pgm(self.zval[i],kval)
-            m1f2 = fmag[i]*self.fcmb[i]/chi**2 * Pmm(self.zval[i],kval)
-            Ckg[:, i] = f1f2 + m1f2
-            Ckk[:, i] = self.fcmb[i]*self.fcmb[i]/chi**2 * Pmm(self.zval[i],kval)
+            Ccmbkcmbk[:, i] = self.w_cmbk[i]**2 / \
+                chi**2 * Pmm(self.zval[i], kval)
+
+        for i in range(self.n_lens):
+            for j, chi in enumerate(self.chival):
+                kval = (ell+0.5)/chi
+                f1f2 = self.w_d[i][j]*self.w_d[i][j]/chi**2 * Pgg[i](self.zval[j], kval)
+                f1m2 = self.w_d[i][j] * self.w_mag[i][j]/chi**2 * Pgm[i](self.zval[j], kval)
+                m1f2 = self.w_mag[i][j] * self.w_d[i][j] / chi**2 * Pgm[i](self.zval[j], kval)
+                m1m2 = self.w_mag[i][j]**2 / chi**2 * Pmm(self.zval[j], kval)
+                Cdd[:, i, j] = f1f2 + f1m2 + m1f2 + m1m2
+
+        for i in range(self.n_lens):
+            for j, chi in enumerate(self.chival):
+                kval = (ell+0.5)/chi
+                f1f2 = self.w_d[i][j] * self.w_cmbk[j] / chi**2 * Pgm[i](self.zval[j], kval)
+                m1f2 = self.w_mag[i][j] * self.w_cmbk[i] / chi**2 * Pmm(self.zval[j], kval)
+                Cdkcmb[:, i, j] = f1f2 + m1f2
+
+        for i in range(self.n_lens):
+            for j in range(self.n_source):
+                for k, chi in enumerate(self.chival):
+                    kval = (ell+0.5)/chi
+                    f1f2 = self.w_d[i][k] * self.w_s[j][k] / chi**2 * Pgm[i](self.zval[k], kval)
+                    f1i2 = self.w_d[i][k] * self.w_ia[j][k] / chi**2 * Pgm[i](self.zval[k], kval)
+                    f1m2 = self.w_d[j][k] * self.w_mag[j][k] / chi**2 * Pgm[i](self.zval[k], kval)
+                    m1i2 = self.w_mag[i][k] * self.w_ia[j][k] / chi**2 * Pmm(self.zval[k], kval)
+                    Cdk[:, i * self.n_source + j, k] = f1f2 + f1i2 + f1m2 + m1i2                
+
+        for i in range(self.n_source):
+            for j in range(self.n_source):
+                for k, chi in enumerate(self.chival):
+                    kval = (ell + 0.5) / chi
+                    f1f2 = self.w_k[i][k] * self.w_k[j][k] / chi**2 * Pmm(self.zval[k], kval)
+                    f1i2 = self.w_k[i][k] * self.w_ia[j][k] / chi**2 * Pmm(self.zval[k], kval)
+                    i1f2 = self.w_ia[i][k] * self.w_k[j][k] / chi**2 * Pmm(self.zval[k], kval)
+                    i1i2 = self.w_ia[i][k] * self.w_ia[j][k] / chi**2 * Pmm(self.zval[k], kval)
+                    Ckk[:, i * self.n_source + j, k] = f1f2 + f1i2 + i1f2 + i1i2
+
 
         # and then just integrate them.
-        Cgg = simps(Cgg, x=self.chival, axis=-1)
-        Ckg = simps(Ckg, x=self.chival, axis=-1)
+        Cdd = simps(Cdd, x=self.chival, axis=-1)
+        Cdk = simps(Cdk, x=self.chival, axis=-1)
         Ckk = simps(Ckk, x=self.chival, axis=-1)
+        Cdcmbk = simps(Cdcmbk, x=self.chival, axis=-1)
+        Ccmbkcmbk = simps(Ccmbkcmbk, x=self.chival, axis=-1)
 
         # Now interpolate onto a regular ell grid.
         lval = np.arange(Lmax)
         Cgg = Spline(ell, Cgg)(lval)
         Ckg = Spline(ell, Ckg)(lval)
         Ckk = Spline(ell, Ckk)(lval)
+        Cdcmbk = Spline(ell, Cdcmbk)(lval)
+        Ccmbkcmbk = Spline(ell, Ccmbkcmbk)(lval)
 
-        return((lval, Cgg, Ckg, Ckk))
-        #
+        return((lval, Cdd, Cdk, Ckk, Cdcmbk, Ccmbkcmbk))
