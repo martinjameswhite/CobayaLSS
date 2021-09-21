@@ -10,11 +10,11 @@ from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 class AngularPowerSpectra():
     """Computes angular power spectra using the Limber approximation."""
 
-    def compute_mag_bias_kernels(self, Nchi_mag=101):
+    def compute_mag_bias_kernels(self, Nchi=101):
         """Returns magnification bias kernel if 's' is the slope of
            the number counts dlog10N/dm."""
 
-        self.w_mag = []
+        self.w_mag = [np.zeros(Nchi)] * self.n_lens
 
         cmax = np.max(self.chival) * 1.1
         def zupper(x): return np.linspace(x, cmax, Nchi)
@@ -28,10 +28,10 @@ class AngularPowerSpectra():
             g = (chivalp-self.chival[np.newaxis, :])/chivalp
             g *= dndz_n*Ez/2997.925
             g = self.chival * simps(g, x=chivalp, axis=0)
-            self.w_mag[i] = 1.5*(self.OmM)/2997.925**2*(1+zval)*g
+            self.w_mag[i] = 1.5*(self.OmM)/2997.925**2*(1+self.zval)*g
 
     def compute_galaxy_convergence_kernels(self, Nchi=101):
-        self.w_k = []
+        self.w_k = [np.zeros(Nchi)] * self.n_source
 
         cmax = np.max(self.chival) * 1.1
         def zupper(x): return np.linspace(x, cmax, Nchi)
@@ -45,14 +45,14 @@ class AngularPowerSpectra():
             g = (chivalp-self.chival[np.newaxis, :])/chivalp
             g *= dndz_n*Ez/2997.925
             g = self.chival * simps(g, x=chivalp, axis=0)
-            self.w_k[i] = self.smag[i] * 1.5*(self.OmM)/2997.925**2*(1+zval)*g
+            self.w_k[i] = self.smag[i] * 1.5*(self.OmM)/2997.925**2*(1+self.zval)*g
 
     def compute_galaxy_density_kernels(self, Nchi=101):
         """Returns magnification bias kernel not including 's'
            (the slope of the number counts dlog10N/dm)"""
 
-        self.w_d = []
-        self.zeff_d = []
+        self.w_d = [np.zeros(Nchi)] * self.n_lens
+        self.zeff_d = [None] * self.n_lens
         ez = self.E_of_z(self.zz)
 
         for i in range(self.n_lens):
@@ -63,18 +63,18 @@ class AngularPowerSpectra():
             self.zeff_d[i] /= simps(self.w_d[i]**2 /
                                     self.chival**2, x=self.chival)
 
-    def compute_galaxy_IA_kernels(self, Nchi=101):
+    def compute_galaxy_ia_kernels(self, Nchi=101):
         """Returns magnification bias kernel not including 's'
            (the slope of the number counts dlog10N/dm)"""
 
-        self.w_ia = []
+        self.w_ia = [None] * self.n_source
         ez = self.E_of_z(self.zz)
 
         for i in range(self.n_source):
             self.w_ia[i] = Spline(self.zz, self.dndz_source[i] * ez)(self.zval)
             self.w_ia[i] /= simps(self.w_ia[i], x=self.chival)
-            self.w_ia *= a_ia * (1 + self.zval) / (1 +
-                                 0.62) ** eta_ia * 0.0134 / self.D(self.zval)
+            self.w_ia *= self.a_ia * (1 + self.zval) / (1 +
+                                 0.62) ** self.eta_ia * 0.0134 / self.Dz(self.zval)
 
     def compute_cmb_convergence_kernel(self, Nchi=101):
         self.w_cmbk = 1.5*self.OmM*(1.0/2997.925)**2*(1+self.zval)
@@ -82,11 +82,11 @@ class AngularPowerSpectra():
 
     def __init__(self, z, dndz_lens, dndz_source, Nchi=101,
                  d_x_cmbk=True, cmbk_x_cmbk=True):
-            """
-            Set up the class.
-            dndz_lens: A numpy array containing dN/dz vs z for all lens bins.
-            dndz_source: A numpy array containing dN/dz vs z for all source bins.
-            """
+        """
+        Set up the class.
+        dndz_lens: A numpy array containing dN/dz vs z for all lens bins.
+        dndz_source: A numpy array containing dN/dz vs z for all source bins.
+        """
         # Copy the arguments, setting up the z-range.
         self.zz = z
         self.dndz_lens = dndz_lens
@@ -98,7 +98,7 @@ class AngularPowerSpectra():
             self.n_lens = len(self.dndz_lens)
             for i in range(self.n_lens):
                 self.dndz_lens[i] = self.dndz_lens[i]/simps(self.dndz_lens[i], x=self.zz, axis=-1)
-       else:
+        else:
             self.n_lens = 0
         
         if self.dndz_source is not None:
@@ -128,6 +128,7 @@ class AngularPowerSpectra():
         self.compute_galaxy_density_kernels()
         self.compute_galaxy_convergence_kernels()
         self.compute_mag_bias_kernels()
+        self.compute_galaxy_ia_kernels()
 
     def __call__(self, Pmm, Pgm, Pgg,
                  chiz, ez, omega_m, chistar, Dz, smag,
@@ -152,34 +153,35 @@ class AngularPowerSpectra():
         Ccmbkcmbk = np.zeros((Nell, self.Nchi))
 
         for i, chi in enumerate(self.chival):
+            kval = (ell+0.5)/chi            
             Ccmbkcmbk[:, i] = self.w_cmbk[i]**2 / \
                 chi**2 * Pmm(self.zval[i], kval)
 
         for i in range(self.n_lens):
             for j, chi in enumerate(self.chival):
                 kval = (ell+0.5)/chi
-                f1f2 = self.w_d[i][j]*self.w_d[i][j]/chi**2 * Pgg[i](self.zval[j], kval)
-                f1m2 = self.w_d[i][j] * self.w_mag[i][j]/chi**2 * Pgm[i](self.zval[j], kval)
-                m1f2 = self.w_mag[i][j] * self.w_d[i][j] / chi**2 * Pgm[i](self.zval[j], kval)
+                f1f2 = self.w_d[i][j]*self.w_d[i][j]/chi**2 * Pgg[i](self.zeff_d[i], kval)
+                f1m2 = self.w_d[i][j] * self.w_mag[i][j]/chi**2 * Pgm[i](self.zeff_d[i], kval)
+                m1f2 = self.w_mag[i][j] * self.w_d[i][j] / chi**2 * Pgm[i](self.zeff_d[i], kval)
                 m1m2 = self.w_mag[i][j]**2 / chi**2 * Pmm(self.zval[j], kval)
                 Cdd[:, i, j] = f1f2 + f1m2 + m1f2 + m1m2
 
         for i in range(self.n_lens):
             for j, chi in enumerate(self.chival):
                 kval = (ell+0.5)/chi
-                f1f2 = self.w_d[i][j] * self.w_cmbk[j] / chi**2 * Pgm[i](self.zval[j], kval)
+                f1f2 = self.w_d[i][j] * self.w_cmbk[j] / chi**2 * Pgm[i](self.zeff_d[i], kval)
                 m1f2 = self.w_mag[i][j] * self.w_cmbk[i] / chi**2 * Pmm(self.zval[j], kval)
-                Cdkcmb[:, i, j] = f1f2 + m1f2
+                Cdcmbk[:, i, j] = f1f2 + m1f2
 
         for i in range(self.n_lens):
             for j in range(self.n_source):
                 for k, chi in enumerate(self.chival):
                     kval = (ell+0.5)/chi
-                    f1f2 = self.w_d[i][k] * self.w_s[j][k] / chi**2 * Pgm[i](self.zval[k], kval)
-                    f1i2 = self.w_d[i][k] * self.w_ia[j][k] / chi**2 * Pgm[i](self.zval[k], kval)
-                    f1m2 = self.w_d[j][k] * self.w_mag[j][k] / chi**2 * Pgm[i](self.zval[k], kval)
+                    f1f2 = self.w_d[i][k] * self.w_k[j][k] / chi**2 * Pgm[i](self.zeff_d[i], kval)
+                    f1i2 = self.w_d[i][k] * self.w_ia[j][k] / chi**2 * Pgm[i](self.zeff_d[i], kval)
+                    f1m2 = self.w_d[j][k] * self.w_mag[j][k] / chi**2 * Pgm[i](self.zeff_d[i], kval)
                     m1i2 = self.w_mag[i][k] * self.w_ia[j][k] / chi**2 * Pmm(self.zval[k], kval)
-                    Cdk[:, i * self.n_source + j, k] = f1f2 + f1i2 + f1m2 + m1i2                
+                    Cdk[:, i * self.n_source + j, k] = f1f2 + f1i2 + f1m2 + m1i2
 
         for i in range(self.n_source):
             for j in range(self.n_source):
@@ -193,18 +195,18 @@ class AngularPowerSpectra():
 
 
         # and then just integrate them.
-        Cdd = simps(Cdd, x=self.chival, axis=-1)
-        Cdk = simps(Cdk, x=self.chival, axis=-1)
-        Ckk = simps(Ckk, x=self.chival, axis=-1)
-        Cdcmbk = simps(Cdcmbk, x=self.chival, axis=-1)
+        Cdd = simps(Cdd, x=self.chival, axis=-1).reshape(-1, self.n_lens)
+        Cdk = simps(Cdk, x=self.chival, axis=-1).reshape(-1, self.n_lens * self.n_source)
+        Ckk = simps(Ckk, x=self.chival, axis=-1).reshape(-1, self.n_source * self.n_source)
+        Cdcmbk = simps(Cdcmbk, x=self.chival, axis=-1).reshape(-1, self.n_lens)
         Ccmbkcmbk = simps(Ccmbkcmbk, x=self.chival, axis=-1)
 
         # Now interpolate onto a regular ell grid.
         lval = np.arange(Lmax)
-        Cgg = Spline(ell, Cgg)(lval)
-        Ckg = Spline(ell, Ckg)(lval)
-        Ckk = Spline(ell, Ckk)(lval)
-        Cdcmbk = Spline(ell, Cdcmbk)(lval)
+        Cdd = Spline(ell, Cdd)(lval).reshape(-1, self.n_lens)
+        Cdk = Spline(ell, Cdk)(lval).reshape(-1, self.n_lens * self.n_source)
+        Ckk = Spline(ell, Ckk)(lval).reshape(-1, self.n_source * self.n_source)
+        Cdcmbk = Spline(ell, Cdcmbk)(lval).reshape(-1, self.n_lens)
         Ccmbkcmbk = Spline(ell, Ccmbkcmbk)(lval)
 
         return((lval, Cdd, Cdk, Ckk, Cdcmbk, Ccmbkcmbk))

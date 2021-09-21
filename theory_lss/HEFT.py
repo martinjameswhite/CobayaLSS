@@ -49,8 +49,8 @@ class HEFTCalculator(Theory):
                              np.log10(self.kmax),
                              self.nk)
 
-        if self.kecleft:
-            self.nspec = 12
+        if self.kecleft: #only using kecleft for anzu
+            self.nspec = 10
         else:
             self.nspec = 13
             

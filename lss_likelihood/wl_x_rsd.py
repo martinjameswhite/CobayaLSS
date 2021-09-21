@@ -8,7 +8,7 @@ from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 import yaml
 
 from emulator import Emulator
-from predict_cl import AngularPowerSpectra, ShearAutoAngularPowerSpectra
+from predict_cl import AngularPowerSpectra
 
 datavector_requires = {'p0': ['z_fid', 'chiz_fid', 'hz_fid'],
                        'p2': ['z_fid', 'chiz_fid', 'hz_fid'],
@@ -57,6 +57,13 @@ class HarmonicSpaceWLxRSD(Likelihood):
             self.zstar = 1098.
         self.load_data()
 
+        if not hasattr(self, 'use_lens_samples'):
+            self.use_lens_samples = np.arange(self.ndbins)
+
+        if not hasattr(self, 'use_source_samples'):
+            self.use_lens_samples = np.arange(self.nsbins)
+            
+
         if self.compute_cell:
             self.setup_projection()
 
@@ -85,8 +92,8 @@ class HarmonicSpaceWLxRSD(Likelihood):
         if ('c_kk' in self.spectrum_types) | \
             ('c_dk' in self.spectrum_types) | \
             ('c_dd' in self.spectrum_types) | \
-            ('c_cmbkcmbk' in self.spectrum_types) |
-        ('c_dcmbk' in self.spectrum_types):
+            ('c_cmbkcmbk' in self.spectrum_types) | \
+            ('c_dcmbk' in self.spectrum_types):
             self.compute_cell = True
         else:
             self.compute_cell = False
@@ -214,21 +221,21 @@ class HarmonicSpaceWLxRSD(Likelihood):
         if hasattr(self, 'nz_d'):
             dndz_lens = [Spline(self.nz_d['z'],
                                 self.nz_d['nz{}'.format(i)], ext=0)(self.z)
-                         for i in self.ndbins]
+                         for i in range(self.ndbins)]
         else:
             dndz_lens = None
 
         if hasattr(self, 'nz_s'):
             dndz_source = [Spline(self.nz_s['z'],
                                   self.nz_s['nz{}'.format(i)], ext=0)(self.z)
-                           for i in self.nsbins]
+                           for i in range(self.nsbins)]
         else:
             dndz_source = None
 
         compute_d_x_kcmb = 'c_dcmbk' in list(self.spectrum_info.keys())
         compute_kcmb_x_kcmb = 'c_cmbkcmbk' in list(self.spectrum_info.keys())
 
-        self.projection_model = AngularPowerSpectrum(self.z, dndz_lens,
+        self.projection_model = AngularPowerSpectra(self.z, dndz_lens,
                                                      dndz_source,
                                                      d_x_cmbk=compute_d_x_kcmb,
                                                      cmbk_x_cmbk=compute_kcmb_x_kcmb)
@@ -396,7 +403,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                     (self.ndbins, self.nz_proj, self.emulators['p_mm'].nk, 3))
 
             for i in range(self.ndbins):
-                if i not in self.use_samples:
+                if i not in self.use_lens_samples:
                     continue
                 b1 = params_values['b1_{}'.format(i)]
                 b2 = params_values['b2_{}'.format(i)]
@@ -464,12 +471,12 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 pdm_splines.append(pdm_spline)
                 pdd_splines.append(pdd_spline)
 
-            smag = [params_values['smag_{}'.format(
-                i)] for i in range(self.ndbins)]
+            smag = np.array([params_values['smag_{}'.format(
+                i)] for i in range(self.ndbins)])
             a_ia = params_values['a_ia']
             eta_ia = params_values['eta_ia']
 
-            lval, Cdd, Cdk, Ckk, Cdcmbk, Ccmbcmbk = self.projection_model(
+            lval, Cdd, Cdk, Ckk, Cdcmbk, Ccmbkcmbk = self.projection_model(
                 pmm_spline, pdm_splines,
                 pdd_splines,
                 chiz, ez, omega_m, chistar, Dz,
@@ -478,7 +485,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
             # just interpolate onto desired ell for now.
             # need to implement windowing.
 
-            if self.compute_ckk:
+            if self.compute_c_kk:
                 Ckk_eval = interp1d(lval, Ckk, fill_value='extrapolate', axis=0)(
                     self.spectrum_info['c_kk']['separation'])
                 for i in range(self.nsbins):
@@ -486,7 +493,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                         self.spectrum_info['c_kk']['{}_{}_model'.format(
                             i, j)] = Ckk_eval[:, i * self.nsbins + j]
 
-            if self.compute_cdk:
+            if self.compute_c_dk:
                 Cdk_eval = interp1d(lval, Cdk, fill_value='extrapolate', axis=0)(
                     self.spectrum_info['c_dk']['separation'])
                 for i in range(self.ndbins):
@@ -494,23 +501,23 @@ class HarmonicSpaceWLxRSD(Likelihood):
                         self.spectrum_info['c_dk']['{}_{}_model'.format(
                             i, j)] = Cdk_eval[:, i * self.nsbins + j]
 
-            if self.compute_cdd:
+            if self.compute_c_dd:
                 Cdd_eval = interp1d(lval, Cdd, fill_value='extrapolate', axis=0)(
                     self.spectrum_info['c_dd']['separation'])
                 for i in range(self.ndbins):
-                    self.spectrum_info['c_dd']['{}_{}_model'.format(
-                        i, i)] = Cdd_eval[:, i]
+                    self.spectrum_info['c_dd']['{}_model'.format(
+                        i)] = Cdd_eval[:, i]
 
-            if self.compute_cdcmbk:
+            if self.compute_c_dcmbk:
                 Cdcmbk_eval = interp1d(lval, Cdcmbk, fill_value='extrapolate', axis=0)(
                     self.spectrum_info['c_dcmbk']['separation'])
                 self.spectrum_info['c_dcmbk']['{}_model'.format(
                     i)] = Cdcmbk_eval[:, i]
 
-            if self.compute_ccmbkcmbk:
+            if self.compute_c_cmbkcmbk:
                 Ccmbkcmbk_eval = interp1d(lval, Ccmbkcmbk, fill_value='extrapolate', axis=0)(
                     self.spectrum_info['c_cmbkcmbk']['separation'])
-                self.spectrum_info['c_dcmbk']['model'] = Ccmbkcmbk_eval
+                self.spectrum_info['c_cmbkcmbk']['model'] = Ccmbkcmbk_eval
 
         if self.compute_pell:
 
@@ -519,7 +526,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                     'pt_pk_ell_model')
 
             for i in range(self.ndbins):
-                if i not in self.use_samples:
+                if i not in self.use_lens_samples:
                     continue
                 b1 = params_values['b1_{}'.format(i)]
                 b2 = params_values['b2_{}'.format(i)]
@@ -586,7 +593,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
         for t in self.spectrum_types:
             for i in range(self.ndbins):
                 if t[0] == 'p':
-                    model.append(self.spectrum_info[t]['model'.format(i)])
+                    model.append(self.spectrum_info[t]['{}_model'.format(i)])
                 else:
                     if t[2] == 'k':
                         for i in range(self.nsbins):
