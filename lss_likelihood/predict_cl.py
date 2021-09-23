@@ -28,7 +28,7 @@ class AngularPowerSpectra():
             g = (chivalp-self.chival[np.newaxis, :])/chivalp
             g *= dndz_n*Ez/2997.925
             g = self.chival * simps(g, x=chivalp, axis=0)
-            self.w_mag[i] = 1.5*(self.OmM)/2997.925**2*(1+self.zval)*g
+            self.w_mag[i] = self.smag[i] * 1.5*(self.OmM)/2997.925**2*(1+self.zval)*g
 
     def compute_galaxy_convergence_kernels(self, Nchi=101):
         self.w_k = [np.zeros(Nchi)] * self.n_source
@@ -45,7 +45,7 @@ class AngularPowerSpectra():
             g = (chivalp-self.chival[np.newaxis, :])/chivalp
             g *= dndz_n*Ez/2997.925
             g = self.chival * simps(g, x=chivalp, axis=0)
-            self.w_k[i] = self.smag[i] * 1.5*(self.OmM)/2997.925**2*(1+self.zval)*g
+            self.w_k[i] = 1.5*(self.OmM)/2997.925**2*(1+self.zval)*g
 
     def compute_galaxy_density_kernels(self, Nchi=101):
         """Returns magnification bias kernel not including 's'
@@ -73,7 +73,7 @@ class AngularPowerSpectra():
         for i in range(self.n_source):
             self.w_ia[i] = Spline(self.zz, self.dndz_source[i] * ez)(self.zval)
             self.w_ia[i] /= simps(self.w_ia[i], x=self.chival)
-            self.w_ia *= self.a_ia * (1 + self.zval) / (1 +
+            self.w_ia[i] *= self.a_ia * (1 + self.zval) / (1 +
                                  0.62) ** self.eta_ia * 0.0134 / self.Dz(self.zval)
 
     def compute_cmb_convergence_kernel(self, Nchi=101):
