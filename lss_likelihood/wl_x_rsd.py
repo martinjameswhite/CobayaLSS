@@ -47,11 +47,15 @@ class HarmonicSpaceWLxRSD(Likelihood):
         self.compute_c_kk = False
         self.compute_c_dk = False
         self.compute_c_dd = False
+        self.compute_c_dcmbk = False
+        self.compute_c_cmbkcmbk = False
         self.compute_p0 = False
         self.compute_p2 = False
         self.compute_p4 = False
         self.cell_emulators = False
         self.pell_emulators = False
+        self.ndbins = 0
+        self.nsbins = 0
 
         if not hasattr(self, 'zstar'):
             self.zstar = 1098.
@@ -61,7 +65,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
             self.use_lens_samples = np.arange(self.ndbins)
 
         if not hasattr(self, 'use_source_samples'):
-            self.use_lens_samples = np.arange(self.nsbins)
+            self.use_source_samples = np.arange(self.nsbins)
             
 
         if self.compute_cell:

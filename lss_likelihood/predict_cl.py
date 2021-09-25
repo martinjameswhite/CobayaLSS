@@ -195,18 +195,35 @@ class AngularPowerSpectra():
 
 
         # and then just integrate them.
-        Cdd = simps(Cdd, x=self.chival, axis=-1).reshape(-1, self.n_lens)
-        Cdk = simps(Cdk, x=self.chival, axis=-1).reshape(-1, self.n_lens * self.n_source)
-        Ckk = simps(Ckk, x=self.chival, axis=-1).reshape(-1, self.n_source * self.n_source)
-        Cdcmbk = simps(Cdcmbk, x=self.chival, axis=-1).reshape(-1, self.n_lens)
-        Ccmbkcmbk = simps(Ccmbkcmbk, x=self.chival, axis=-1)
+
+        Ccmbkcmbk = simps(Ccmbkcmbk, x=self.chival, axis=-1)        
+        if self.n_lens > 0:
+            Cdd = simps(Cdd, x=self.chival, axis=-1).reshape(-1, self.n_lens)
+            Cdcmbk = simps(Cdcmbk, x=self.chival, axis=-1).reshape(-1, self.n_lens)            
+            if self.n_source > 0:
+                Cdk = simps(Cdk, x=self.chival, axis=-1).reshape(-1, self.n_lens * self.n_source)
+            else:
+                Cdk = None
+        else:
+            Cdd = None
+            Cdcmbk = None
+
+        if self.n_source > 0:
+            Ckk = simps(Ckk, x=self.chival, axis=-1).reshape(-1, self.n_source * self.n_source)
+        else:
+            Ckk = None
 
         # Now interpolate onto a regular ell grid.
         lval = np.arange(Lmax)
-        Cdd = Spline(ell, Cdd)(lval).reshape(-1, self.n_lens)
-        Cdk = Spline(ell, Cdk)(lval).reshape(-1, self.n_lens * self.n_source)
-        Ckk = Spline(ell, Ckk)(lval).reshape(-1, self.n_source * self.n_source)
-        Cdcmbk = Spline(ell, Cdcmbk)(lval).reshape(-1, self.n_lens)
-        Ccmbkcmbk = Spline(ell, Ccmbkcmbk)(lval)
+        if Cdd is not None:
+            Cdd = Spline(ell, Cdd)(lval).reshape(-1, self.n_lens)
+        if Cdk is not None:
+            Cdk = Spline(ell, Cdk)(lval).reshape(-1, self.n_lens * self.n_source)
+        if Ckk is not None:
+            Ckk = Spline(ell, Ckk)(lval).reshape(-1, self.n_source * self.n_source)
+        if Cdcmbk is not None:
+            Cdcmbk = Spline(ell, Cdcmbk)(lval).reshape(-1, self.n_lens)
+        if Ccmbkcmbk is not None:
+            Ccmbkcmbk = Spline(ell, Ccmbkcmbk)(lval)
 
         return((lval, Cdd, Cdk, Ckk, Cdcmbk, Ccmbkcmbk))
