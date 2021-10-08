@@ -5,7 +5,9 @@ from cobaya.theories.cosmo import PowerSpectrumInterpolator
 from itertools import permutations, product
 from scipy.interpolate import interp1d
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
+import warnings
 import yaml
+import sys
 
 from emulator import Emulator
 from predict_cl import AngularPowerSpectra
@@ -23,13 +25,16 @@ datavector_requires = {'p0': ['z_fid', 'chiz_fid', 'hz_fid'],
 class HarmonicSpaceWLxRSD(Likelihood):
     # From yaml file.
     heft: bool
+    kecleft: bool
     datavector_info_filename: str
     zmin_proj: float
     zmax_proj: float
     nz_proj: int
     nchi_proj: int
     emulator_weights: Optional[Dict[str, str]]
-    use_samples: Optional[Union[Sequence, np.ndarray]]
+    emulator_params: Optional[Dict[str, str]]
+    use_lens_samples: Optional[Union[Sequence, np.ndarray]]
+    use_source_samples: Optional[Union[Sequence, np.ndarray]]    
     zstar: Optional[float]
     halofit_pmm: bool
 
@@ -57,6 +62,12 @@ class HarmonicSpaceWLxRSD(Likelihood):
         self.ndbins = 0
         self.nsbins = 0
 
+        if not hasattr(self, 'use_lens_samples'):
+            self.use_lens_samples = None
+
+        if not hasattr(self, 'use_source_samples'):
+            self.use_source_samples = None
+
         if not hasattr(self, 'zstar'):
             self.zstar = 1098.
         self.load_data()
@@ -67,7 +78,6 @@ class HarmonicSpaceWLxRSD(Likelihood):
         if not hasattr(self, 'use_source_samples'):
             self.use_source_samples = np.arange(self.nsbins)
             
-
         if self.compute_cell:
             self.setup_projection()
 
@@ -89,7 +99,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                                      names=True, dtype=dt)
         self.spectrum_types = np.unique(self.spectra['spectrum_type'])
         self.spectrum_info = {}
-        self.n_dv = len(self.spectra)
+
         self.compute_cell = False
         self.compute_pell = False
 
@@ -110,17 +120,36 @@ class HarmonicSpaceWLxRSD(Likelihood):
             self.compute_pell = False
 
         requirements = []
-
         for t in self.spectrum_types:
-            setattr(self, 'compute_{}'.format(t), True)
-            idx = self.spectra['spectrum_type'] == t
-            nbins0 = len(np.unique(self.spectra[idx]['zbin0']))
-            nbins1 = len(np.unique(self.spectra[idx]['zbin1']))
 
-            if (t[:3] == 'c_d'):
-                self.ndbins = nbins0
-            elif (t[:3] == 'c_k'):
-                self.nsbins = nbins1
+            #get rid of bins we don't want
+            if (t[0]=='p') | (t[-2]=='d'):
+                if self.use_lens_samples is not None:
+                    idx = (((self.spectra['spectrum_type'] == t) &
+                            (np.in1d(self.spectra['zbin0'], self.use_lens_samples))) |
+                           (self.spectra['spectrum_type'] != t))
+
+                    self.spectra = self.spectra[idx]
+
+            if t[-2] == 'k':
+                if self.use_source_samples is not None:
+                    idx = (((self.spectra['spectrum_type'] == t) &
+                            (np.in1d(self.spectra['zbin1'], self.use_source_samples))) |
+                           (self.spectra['spectrum_type'] != t))
+                    self.spectra = self.spectra[idx]
+                
+            idx = self.spectra['spectrum_type'] == t                
+            setattr(self, 'compute_{}'.format(t), True)
+
+            bins0 = np.unique(self.spectra[idx]['zbin0'])
+            bins1 = np.unique(self.spectra[idx]['zbin1'])
+
+            if (t[:3] == 'c_d') | (t[0] == 'p'):
+                self.use_lens_samples = bins0
+                self.ndbins = len(bins0)
+            elif (t[-2] == 'k'):
+                self.use_source_samples = bins1
+                self.nsbins = len(bins1)
 
             z0 = self.spectra['zbin0'][idx][0]
             z1 = self.spectra['zbin1'][idx][0]
@@ -129,11 +158,13 @@ class HarmonicSpaceWLxRSD(Likelihood):
             ndv_per_bin = np.sum(idx)
             sep = self.spectra[idx]['separation']
 
-            self.spectrum_info[t] = {'nbins0': nbins0, 'nbins1': nbins1,
+            self.spectrum_info[t] = {'bins0': bins0, 'bins1': bins1,
                                      'ndv_per_bin': ndv_per_bin,
                                      'separation': sep}
 
             requirements.extend(datavector_requires[t])
+
+        self.n_dv = len(self.spectra)            
 
         requirements = np.unique(np.array(requirements))
 
@@ -148,8 +179,10 @@ class HarmonicSpaceWLxRSD(Likelihood):
         # with columns specifying the two data vector types, and four redshift
         # bin indices for each element, as well as a column for the elements
         # themselves
-        dt = np.dtype([('spectrum_type0', 'U10'), ('spectrum_type1', 'U10'), ('zbin00', np.int),
-                       ('zbin01', np.int), ('zbin10', np.int), ('zbin11', np.int), ('value', np.float)])
+        dt = np.dtype([('spectrum_type0','U10'), ('spectrum_type1','U10'), ('zbin00', np.int),
+               ('zbin01', np.int), ('zbin10', np.int), ('zbin11', np.int), 
+               ('separation0', np.float), ('separation1', np.float), ('value', np.float)])
+
         cov_raw = np.genfromtxt(
             datavector_info['covariance_filename'], names=True, dtype=dt)
 
@@ -165,22 +198,22 @@ class HarmonicSpaceWLxRSD(Likelihood):
             if (t0, t1) not in zbin_counter.keys():
                 zbin_counter[(t0, t1)] = []
 
-            n00, n01, n10, n11 = np.arange(self.spectrum_info[t0]['nbins0']), \
-                np.arange(self.spectrum_info[t0]['nbins1']), \
-                np.arange(self.spectrum_info[t1]['nbins0']), \
-                np.arange(self.spectrum_info[t1]['nbins1'])
+            n00, n01, n10, n11 = self.spectrum_info[t0]['bins0'], \
+                self.spectrum_info[t0]['bins1'], \
+                self.spectrum_info[t1]['bins0'], \
+                self.spectrum_info[t1]['bins1']
 
             for zb00, zb01, zb10, zb11 in product(n00, n01, n10, n11):
                 if ((zb00, zb01), (zb10, zb11)) in zbin_counter[(t0, t1)]:
                     continue
 
-                idxi = (self.spectra['spectrum_type'] == t0) & \
+                idxi = np.where((self.spectra['spectrum_type'] == t0) & \
                        (self.spectra['zbin0'] == zb00) & \
-                       (self.spectra['zbin1'] == zb01)
+                       (self.spectra['zbin1'] == zb01))
 
-                idxj = (self.spectra['spectrum_type'] == t1) & \
+                idxj = np.where((self.spectra['spectrum_type'] == t1) & \
                        (self.spectra['zbin0'] == zb10) & \
-                       (self.spectra['zbin1'] == zb11)
+                       (self.spectra['zbin1'] == zb11))
 
                 covidx = (((cov_raw['spectrum_type0'] == t0) &
                            (cov_raw['zbin00'] == zb00) &
@@ -189,15 +222,20 @@ class HarmonicSpaceWLxRSD(Likelihood):
                            (cov_raw['zbin10'] == zb10) &
                            (cov_raw['zbin11'] == zb11)))
 
-                try:
-                    self.cov[idxi, idxj] = cov_raw[covidx]['value']
-                    zbin_counter[(t0, t1)].extend(
-                        permutations(((zb00, zb01), (zb10, zb11))))
-                except:
-                    pass
+                x_i, y_i = np.meshgrid(idxi, idxj, indexing='ij')
+
+                if np.sum(covidx)>0:
+                    self.cov[x_i.flatten(), y_i.flatten()] = cov_raw[covidx]['value']
+                    
+                zbin_counter[(t0, t1)].extend(
+                    permutations(((zb00, zb01), (zb10, zb11))))
 
             spec_type_counter.extend(permutations((t0, t1)))
 
+        # reflect triangular matrix to give symmetric cov
+        self.cov += self.cov.T
+        self.cov[np.arange(self.n_dv), np.arange(self.n_dv)] /= 2
+        
         self.cinv = np.linalg.inv(self.cov)
 
         # check if we have emulators for these statistics
@@ -214,9 +252,9 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
                 elif stat in ['p0', 'p2', 'p4']:
                     self.emulators[stat] = []
-                    for i in range(self.spectrum_info[stat]['nbins0']):
+                    for i in self.spectrum_info[stat]['bins0']:
                         emu_path = self.emulator_weights[stat][i]
-                        emu = Emulator(emu_path)
+                        emu = Emulator(emu_path, kmax=0.5)
                         self.emulators[stat].append(emu)
                     self.pell_emulators = True
 
@@ -225,14 +263,14 @@ class HarmonicSpaceWLxRSD(Likelihood):
         if hasattr(self, 'nz_d'):
             dndz_lens = [Spline(self.nz_d['z'],
                                 self.nz_d['nz{}'.format(i)], ext=0)(self.z)
-                         for i in range(self.ndbins)]
+                         for i in self.use_lens_samples]
         else:
             dndz_lens = None
 
         if hasattr(self, 'nz_s'):
             dndz_source = [Spline(self.nz_s['z'],
                                   self.nz_s['nz{}'.format(i)], ext=0)(self.z)
-                           for i in range(self.nsbins)]
+                           for i in self.use_source_samples]
         else:
             dndz_source = None
 
@@ -338,6 +376,26 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
         return res
 
+    def combine_kecleft_bias_terms_pk(self, kv, arr, b1, b2, bs, b3, alpha, sn):
+        '''
+        Combine all the bias terms into one power spectrum,
+        where alpha is the counterterm and sn the shot noise/stochastic contribution.
+        '''
+        pkarr = np.copy(arr)
+
+        pkarr[1, :] *= 2
+        pkarr[5, :] *= 0.25
+        pkarr[6, :] *= 2
+        pkarr[7, :] *= 2
+        bias_monomials = np.array(
+            [1, b1, b1**2, b2, b1*b2, b2**2, bs, b1*bs, b2*bs, bs**2])
+        pktemp = np.copy(pkarr)
+
+        res = np.sum(pktemp * bias_monomials[:, np.newaxis, np.newaxis],
+                     axis=0) + sn
+
+        return res    
+
     def combine_cleft_bias_terms_pk_crossmatter(self, kv, arr, b1, b2, bs, b3, alpha):
         """A helper function to return P_{gm}, which is a common use-case."""
         pkarr = np.copy(arr)
@@ -349,6 +407,17 @@ class HarmonicSpaceWLxRSD(Likelihood):
             0.5*b2*pkarr[3, :]+0.5*bs*pkarr[6, :] +\
             0.5*b3*pkarr[10, :] +\
             alpha*kv[:, np.newaxis]**2*pkarr[12, :]
+        return ret
+
+    def combine_kecleft_bias_terms_pk_crossmatter(self, kv, arr, b1, b2, bs, b3, alpha):
+        """A helper function to return P_{gm}, which is a common use-case."""
+        pkarr = np.copy(arr)
+        pkarr[1, :] *= 2
+        pkarr[5, :] *= 0.25
+        pkarr[6, :] *= 2
+        pkarr[7, :] *= 2
+        ret = pkarr[0, :]+0.5*b1*pkarr[1, :] +\
+            0.5*b2*pkarr[3, :]+0.5*bs*pkarr[6, :]
         return ret
 
     def combine_pkell_spectra(self, bvec, pktable):
@@ -406,9 +475,8 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 self.rs_power_spectra = np.zeros(
                     (self.ndbins, self.nz_proj, self.emulators['p_mm'].nk, 3))
 
-            for i in range(self.ndbins):
-                if i not in self.use_lens_samples:
-                    continue
+            for i in self.use_lens_samples:
+
                 b1 = params_values['b1_{}'.format(i)]
                 b2 = params_values['b2_{}'.format(i)]
                 bs = params_values['bs_{}'.format(i)]
@@ -436,13 +504,26 @@ class HarmonicSpaceWLxRSD(Likelihood):
                     else:
                         if self.halofit_pmm:
                             pmm = spectra[0, ...]
+                        elif self.kecleft:
+                            if bk!=0:                            
+                                warnings.warn('b_k!=0, but you are using kecleft, so counterterm is not computed.', UserWarning)
+                            pmm = self.combine_kecleft_bias_terms_pk(
+                                self.k, spectra, 0, 0, 0, 0, bk, 0)
                         else:
                             pmm = self.combine_cleft_bias_terms_pk(
                                 self.k, spectra, 0, 0, 0, 0, bk, 0)
-                        pdm = self.combine_cleft_bias_terms_pk_crossmatter(
-                            self.k, spectra, b1, b2, bs, 0.0, bk)
-                        pdd = self.combine_cleft_bias_terms_pk(
-                            self.k, spectra, b1, b2, bs, 0.0, bk, sn)
+                        if self.kecleft:
+                            if bk!=0:
+                                warnings.warn('b_k!=0, but you are using kecleft, so counterterm is not computed.', UserWarning)
+                            pdm = self.combine_kecleft_bias_terms_pk_crossmatter(
+                                self.k, spectra, b1, b2, bs, 0.0, bk)
+                            pdd = self.combine_kecleft_bias_terms_pk(
+                                self.k, spectra, b1, b2, bs, 0.0, bk, sn)
+                        else:
+                            pdm = self.combine_cleft_bias_terms_pk_crossmatter(
+                                self.k, spectra, b1, b2, bs, 0.0, bk)
+                            pdd = self.combine_cleft_bias_terms_pk(
+                                self.k, spectra, b1, b2, bs, 0.0, bk, sn)
 
                 else:
                     params = cosmo_params + bias_params
@@ -492,16 +573,16 @@ class HarmonicSpaceWLxRSD(Likelihood):
             if self.compute_c_kk:
                 Ckk_eval = interp1d(lval, Ckk, fill_value='extrapolate', axis=0)(
                     self.spectrum_info['c_kk']['separation'])
-                for i in range(self.nsbins):
-                    for j in range(self.nsbins):
+                for i in self.use_source_samples:
+                    for j in self.use_source_samples:
                         self.spectrum_info['c_kk']['{}_{}_model'.format(
                             i, j)] = Ckk_eval[:, i * self.nsbins + j]
 
             if self.compute_c_dk:
                 Cdk_eval = interp1d(lval, Cdk, fill_value='extrapolate', axis=0)(
                     self.spectrum_info['c_dk']['separation'])
-                for i in range(self.ndbins):
-                    for j in range(self.nsbins):
+                for i in self.use_lens_samples:
+                    for j in self.use_source_samples:
                         self.spectrum_info['c_dk']['{}_{}_model'.format(
                             i, j)] = Cdk_eval[:, i * self.nsbins + j]
 
@@ -528,44 +609,48 @@ class HarmonicSpaceWLxRSD(Likelihood):
             if not self.pell_emulators:
                 pt_models = self.provider.get_result(
                     'pt_pk_ell_model')
-
+            else:
+                #all emulators should take cosmo params in the same order
+                cosmo_params = self.emulator_params['p0']['cosmology']
+                cosmo_params = [self.provider.get_param(p) for p in cosmo_params]
             for i in range(self.ndbins):
                 if i not in self.use_lens_samples:
                     continue
-                b1 = params_values['b1_{}'.format(i)]
-                b2 = params_values['b2_{}'.format(i)]
-                bs = params_values['bs_{}'.format(i)]
-                b3 = params_values['b3_{}'.format(i)]
-
-                alpha0 = params_values['alpha0_{}'.format(i)]
-                alpha2 = params_values['alpha2_{}'.format(i)]
-                alpha4 = params_values['alpha4_{}'.format(i)]
-                alpha6 = params_values['alpha6_{}'.format(i)]
-
-                sn = params_values['sn_{}'.format(i)]
-                sn2 = params_values['sn2_{}'.format(i)]
-                sn4 = params_values['sn4_{}'.format(i)]
-
-                bias_params = [b1, b2, bs, b3, alpha0, alpha2, alpha4,
-                               alpha6, sn, sn2, sn4]
 
                 # compute multipoles and interpolate onto desired k values
                 # need to implement window/wide angle stuff still.
                 if not self.pell_emulators:
+                    b1 = params_values['b1_{}'.format(i)]
+                    b2 = params_values['b2_{}'.format(i)]
+                    bs = params_values['bs_{}'.format(i)]
+                    b3 = params_values['b3_{}'.format(i)]
+
+                    alpha0 = params_values['alpha0_{}'.format(i)]
+                    alpha2 = params_values['alpha2_{}'.format(i)]
+                    alpha4 = params_values['alpha4_{}'.format(i)]
+                    alpha6 = params_values['alpha6_{}'.format(i)]
+
+                    sn = params_values['sn_{}'.format(i)]
+                    sn2 = params_values['sn2_{}'.format(i)]
+                    sn4 = params_values['sn4_{}'.format(i)]
+
+                    bias_params = [b1, b2, bs, b3, alpha0, alpha2, alpha4,
+                                   alpha6, sn, sn2, sn4]
+                    
                     lpt = pt_models[i]
                     k, p0, p2, p4 = lpt.combine_bias_terms_pkell(bias_params)
                 else:
+
+                    bias_params = self.emulator_params['p0']['bias']
+                    bias_params = [params_values['{}_{}'.format(p, i)] for p in bias_params]
+
                     params = cosmo_params + bias_params
 
-                    param_grid = np.zeros(len(self.z), len(params)+1)
-
                     params = np.array(params)
-                    param_grid[:, :-1] = params
-                    param_grid[:, -1] = self.z
 
-                    k, p0 = self.emulators['p0'][i](param_grid)
-                    k, p2 = self.emulators['p2'][i](param_grid)
-                    k, p4 = self.emulators['p4'][i](param_grid)
+                    k, p0 = self.emulators['p0'][i](params)
+                    k, p2 = self.emulators['p2'][i](params)
+                    k, p4 = self.emulators['p4'][i](params)
 
                 if not hasattr(self, 'pkell_spectra'):
                     self.pkell_spectra = np.zeros((self.ndbins, len(k), 3))
@@ -575,42 +660,39 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 self.pkell_spectra[i, :, 2] = p4
 
                 if self.compute_p0:
-                    p0_spline = interp1d(np.log10(k), np.arcsinh(p0),
-                                         fill_value='extrapolate')
-                    self.spectrum_info['p0']['{}_model'.format(i)] = np.sinh(p0_spline(
-                        np.log10(self.spectrum_info['p0']['separation'])))
+                    p0_spline = interp1d(k, p0, fill_value='extrapolate')
+                    self.spectrum_info['p0']['{}_model'.format(i)] = p0_spline(
+                        self.spectrum_info['p0']['separation'])
 
                 if self.compute_p2:
-                    p2_spline = interp1d(np.log10(k), np.arcsinh(p2),
-                                         fill_value='extrapolate')
-                    self.spectrum_info['p2']['{}_model'.format(i)] = np.sinh(p2_spline(
-                        np.log10(self.spectrum_info['p2']['separation'])))
+                    p2_spline = interp1d(k, p2, fill_value='extrapolate')
+                    self.spectrum_info['p2']['{}_model'.format(i)] = p2_spline(
+                        self.spectrum_info['p2']['separation'])
 
                 if self.compute_p4:
-                    p4_spline = interp1d(np.log10(k), np.arcsinh(p4),
-                                         fill_value='extrapolate')
-                    self.spectrum_info['p4']['{}_model'.format(i)] = np.sinh(p4_spline(
-                        np.log10(self.spectrum_info['p4']['separation'])))
+                    p4_spline = interp1d(k, p4, fill_value='extrapolate')
+                    self.spectrum_info['p4']['{}_model'.format(i)] = p4_spline(
+                        self.spectrum_info['p4']['separation'])
 
         # package everything up into one big model datavector
         model = []
         for t in self.spectrum_types:
-            for i in range(self.ndbins):
+            for i in self.use_lens_samples:
                 if t[0] == 'p':
                     model.append(self.spectrum_info[t]['{}_model'.format(i)])
                 else:
                     if t[2] == 'k':
-                        for i in range(self.nsbins):
-                            for j in range(self.nsbins):
+                        for i in self.use_source_samples:
+                            for j in self.use_source_samples:
                                 model.append(
                                     self.spectrum_info[t]['{}_{}_model'.format(i, j)])
                     elif (t[2] == 'd') & (t[3] == 'k'):
-                        for i in range(self.ndbins):
-                            for j in range(self.nsbins):
+                        for i in self.use_lens_samples:
+                            for j in self.use_source_samples:
                                 model.append(
                                     self.spectrum_info[t]['{}_{}_model'.format(i, j)])
-                    elif (t[2] == 'd'):
-                        for i in range(self.ndbins):
+                    elif (t[3] == 'd') | (t[3] == 'c'):
+                        for i in self.use_lens_samples:
                             model.append(
                                 self.spectrum_info[t]['{}_model'.format(i)])
                     else:
