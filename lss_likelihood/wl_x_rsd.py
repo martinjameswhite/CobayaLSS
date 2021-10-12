@@ -34,7 +34,8 @@ class HarmonicSpaceWLxRSD(Likelihood):
     emulator_weights: Optional[Dict[str, str]]
     emulator_params: Optional[Dict[str, str]]
     use_lens_samples: Optional[Union[Sequence, np.ndarray]]
-    use_source_samples: Optional[Union[Sequence, np.ndarray]]    
+    use_source_samples: Optional[Union[Sequence, np.ndarray]]
+    scale_cuts: Optional[Dict[str, float]]
     zstar: Optional[float]
     halofit_pmm: bool
 
@@ -77,6 +78,9 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
         if not hasattr(self, 'use_source_samples'):
             self.use_source_samples = np.arange(self.nsbins)
+
+        if not hasattr(self, 'scale_cuts'):
+            self.scale_cuts = None
             
         if self.compute_cell:
             self.setup_projection()
@@ -136,7 +140,8 @@ class HarmonicSpaceWLxRSD(Likelihood):
                     idx = (((self.spectra['spectrum_type'] == t) &
                             (np.in1d(self.spectra['zbin1'], self.use_source_samples))) |
                            (self.spectra['spectrum_type'] != t))
-                    self.spectra = self.spectra[idx]
+                    self.spectra = self.spectra[idx]                    
+            
                 
             idx = self.spectra['spectrum_type'] == t                
             setattr(self, 'compute_{}'.format(t), True)
@@ -151,16 +156,18 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 self.use_source_samples = bins1
                 self.nsbins = len(bins1)
 
+
+            idx = self.spectra['spectrum_type'] == t
             z0 = self.spectra['zbin0'][idx][0]
             z1 = self.spectra['zbin1'][idx][0]
             idx &= (self.spectra['zbin0'] == z0) & (
                 self.spectra['zbin0'] == z1)
             ndv_per_bin = np.sum(idx)
-            sep = self.spectra[idx]['separation']
+            sep_unmasked = self.spectra[idx]['separation']
 
             self.spectrum_info[t] = {'bins0': bins0, 'bins1': bins1,
-                                     'ndv_per_bin': ndv_per_bin,
-                                     'separation': sep}
+                                     'n_dv_per_bin': ndv_per_bin,
+                                     'separation': sep_unmasked}
 
             requirements.extend(datavector_requires[t])
 
@@ -175,68 +182,8 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 setattr(self, r, np.genfromtxt(
                     datavector_info[r], dtype=None, names=True))
 
-        # Always need a covariance matrix. This should be a text file
-        # with columns specifying the two data vector types, and four redshift
-        # bin indices for each element, as well as a column for the elements
-        # themselves
-        dt = np.dtype([('spectrum_type0','U10'), ('spectrum_type1','U10'), ('zbin00', np.int),
-               ('zbin01', np.int), ('zbin10', np.int), ('zbin11', np.int), 
-               ('separation0', np.float), ('separation1', np.float), ('value', np.float)])
-
-        cov_raw = np.genfromtxt(
-            datavector_info['covariance_filename'], names=True, dtype=dt)
-
-        self.cov = np.zeros((self.n_dv, self.n_dv))
-
-        spec_type_counter = []
-        zbin_counter = {}
-
-        for t0, t1 in product(self.spectrum_types, self.spectrum_types):
-            if (t0, t1) in spec_type_counter:
-                continue
-
-            if (t0, t1) not in zbin_counter.keys():
-                zbin_counter[(t0, t1)] = []
-
-            n00, n01, n10, n11 = self.spectrum_info[t0]['bins0'], \
-                self.spectrum_info[t0]['bins1'], \
-                self.spectrum_info[t1]['bins0'], \
-                self.spectrum_info[t1]['bins1']
-
-            for zb00, zb01, zb10, zb11 in product(n00, n01, n10, n11):
-                if ((zb00, zb01), (zb10, zb11)) in zbin_counter[(t0, t1)]:
-                    continue
-
-                idxi = np.where((self.spectra['spectrum_type'] == t0) & \
-                       (self.spectra['zbin0'] == zb00) & \
-                       (self.spectra['zbin1'] == zb01))
-
-                idxj = np.where((self.spectra['spectrum_type'] == t1) & \
-                       (self.spectra['zbin0'] == zb10) & \
-                       (self.spectra['zbin1'] == zb11))
-
-                covidx = (((cov_raw['spectrum_type0'] == t0) &
-                           (cov_raw['zbin00'] == zb00) &
-                           (cov_raw['zbin01'] == zb01) &
-                           (cov_raw['spectrum_type1'] == t1) &
-                           (cov_raw['zbin10'] == zb10) &
-                           (cov_raw['zbin11'] == zb11)))
-
-                x_i, y_i = np.meshgrid(idxi, idxj, indexing='ij')
-
-                if np.sum(covidx)>0:
-                    self.cov[x_i.flatten(), y_i.flatten()] = cov_raw[covidx]['value']
-                    
-                zbin_counter[(t0, t1)].extend(
-                    permutations(((zb00, zb01), (zb10, zb11))))
-
-            spec_type_counter.extend(permutations((t0, t1)))
-
-        # reflect triangular matrix to give symmetric cov
-        self.cov += self.cov.T
-        self.cov[np.arange(self.n_dv), np.arange(self.n_dv)] /= 2
-        
-        self.cinv = np.linalg.inv(self.cov)
+        self.setup_scale_cuts()
+        self.load_covariance_matrix(datavector_info)
 
         # check if we have emulators for these statistics
         if hasattr(self, 'emulator_weights'):
@@ -257,6 +204,146 @@ class HarmonicSpaceWLxRSD(Likelihood):
                         emu = Emulator(emu_path, kmax=0.5)
                         self.emulators[stat].append(emu)
                     self.pell_emulators = True
+
+    def setup_scale_cuts(self):
+        #make scale cut mask
+        if self.scale_cuts is not None:
+            for t in self.spectrum_info:
+                if t in self.scale_cuts:
+                    scale_cut_dict = self.scale_cuts[t]
+                    scale_cut_mask = {}
+                    sep_unmasked = self.spectrum_info[t]['separation']
+                    
+                    if (t[0]=='p') | (t=='c_dd') | (t=='c_dcmbk'):
+                        for i in self.use_lens_samples:
+                            try:
+                                sep_min, sep_max = scale_cut_dict['{}_{}'.format(i, i)]
+                            except:
+                                raise ValueError('Scale cuts not provided for {} bin pair {},{}'.format(t,i,i))
+
+                            mask = (sep_min <= sep_unmasked) & (sep_unmasked <= sep_max)
+                            scale_cut_mask['{}_{}'.format(i,i)] = mask
+                            
+                    elif (t=='c_dk'):
+                        for i in self.use_lens_samples:
+                            for j in self.use_source_samples:
+                                try:
+                                    sep_min, sep_max = scale_cut_dict['{}_{}'.format(i, j)]
+                                except:
+                                    raise ValueError('Scale cuts not provided for {} bin pair {},{}'.format(t,i,j))
+
+                                mask = (sep_min <= sep_unmasked) & (sep_unmasked <= sep_max)
+                                scale_cut_mask['{}_{}'.format(i,j)] = mask
+
+                    elif (t=='c_kk'):
+                        for i in self.use_source_samples:
+                            for j in self.use_source_samples:
+                                try:
+                                    sep_min, sep_max = scale_cut_dict['{}_{}'.format(i, j)]
+                                except:
+                                    raise ValueError('Scale cuts not provided for {} bin pair {},{}'.format(t,i,j))
+
+                                mask = (sep_min <= sep_unmasked) & (sep_unmasked <= sep_max)
+                                scale_cut_mask['{}_{}'.format(i,j)] = mask
+
+                    elif (t=='c_cmbkcmbk'):
+                        try:
+                            sep_min, sep_max = scale_cut_dict['0_0']
+                        except:
+                            raise ValueError('Scale cuts not provided for {} bin pair {},{}'.format(t,0,0))
+
+                        mask = (sep_min <= sep_unmasked) & (sep_unmasked <= sep_max)
+                        scale_cut_mask['0_0'] = mask
+
+                    self.spectrum_info[t]['scale_cut_masks'] = scale_cut_mask
+                    
+                else:
+                    raise ValueError('No scale cuts specified for {}'.format(t))
+        else:
+            warnings.warn('No scale cuts specified for any spectra!', UserWarning)
+
+            for t in self.spectrum_info:
+                self.spectrum_info[t]['scale_cut_masks'] = None
+
+    def load_covariance_matrix(self, datavector_info):
+        # Always need a covariance matrix. This should be a text file
+        # with columns specifying the two data vector types, and four redshift
+        # bin indices for each element, as well as a column for the elements
+        # themselves
+        dt = np.dtype([('spectrum_type0','U10'), ('spectrum_type1','U10'), ('zbin00', np.int),
+               ('zbin01', np.int), ('zbin10', np.int), ('zbin11', np.int), 
+               ('separation0', np.float), ('separation1', np.float), ('value', np.float)])
+
+        cov_raw = np.genfromtxt(
+            datavector_info['covariance_filename'], names=True, dtype=dt)
+
+        self.cov = np.zeros((self.n_dv, self.n_dv))
+
+        spec_type_counter = []
+        zbin_counter = {}
+        cov_scale_mask = []
+
+        for t0, t1 in product(self.spectrum_types, self.spectrum_types):
+            if (t0, t1) in spec_type_counter:
+                continue
+
+            if (t0, t1) not in zbin_counter.keys():
+                zbin_counter[(t0, t1)] = []
+
+            n00, n01, n10, n11 = self.spectrum_info[t0]['bins0'], \
+                self.spectrum_info[t0]['bins1'], \
+                self.spectrum_info[t1]['bins0'], \
+                self.spectrum_info[t1]['bins1']
+
+            for zb00, zb01, zb10, zb11 in product(n00, n01, n10, n11):
+                if ((zb00, zb01), (zb10, zb11)) in zbin_counter[(t0, t1)]:
+                    continue
+
+                idxi = np.where((self.spectra['spectrum_type'] == t0) & \
+                       (self.spectra['zbin0'] == zb00) & \
+                       (self.spectra['zbin1'] == zb01))[0]
+
+                idxj = np.where((self.spectra['spectrum_type'] == t1) & \
+                       (self.spectra['zbin0'] == zb10) & \
+                       (self.spectra['zbin1'] == zb11))[0]
+
+                covidx = (((cov_raw['spectrum_type0'] == t0) &
+                           (cov_raw['zbin00'] == zb00) &
+                           (cov_raw['zbin01'] == zb01) &
+                           (cov_raw['spectrum_type1'] == t1) &
+                           (cov_raw['zbin10'] == zb10) &
+                           (cov_raw['zbin11'] == zb11)))
+
+                ii, jj = np.meshgrid(idxi, idxj, indexing='ij')
+
+                start_idx = np.min(idxi)
+                #mask scales
+                if self.spectrum_info[t0]['scale_cut_masks'] is not None:
+                    mask_i = np.where(self.spectrum_info[t0]['scale_cut_masks']['{}_{}'.format(zb00,zb01)])[0]
+                else:
+                    mask_i = np.arange(self.spectrum_info[t0]['n_dv_per_bin'])
+                        
+                cov_scale_mask.extend((mask_i + start_idx).tolist())
+
+                if np.sum(covidx)>0:
+                    self.cov[ii.flatten(), jj.flatten()] = cov_raw[covidx]['value']
+
+                    
+                zbin_counter[(t0, t1)].extend(
+                    permutations(((zb00, zb01), (zb10, zb11))))
+
+            spec_type_counter.extend(permutations((t0, t1)))
+
+        # reflect triangular matrix to give symmetric cov
+        self.cov += self.cov.T
+        self.cov[np.arange(self.n_dv), np.arange(self.n_dv)] /= 2
+        self.scale_mask = np.unique(cov_scale_mask)
+        self.scale_mask.sort()
+        self.n_dv_masked = len(self.scale_mask)
+        cov_scale_mask_i, cov_scale_mask_j = np.meshgrid(self.scale_mask, self.scale_mask, indexing='ij')
+        
+        self.cinv = np.linalg.inv(self.cov[cov_scale_mask_i, cov_scale_mask_j].reshape(self.n_dv_masked, self.n_dv_masked))
+        
 
     def setup_projection(self):
 
@@ -677,31 +764,36 @@ class HarmonicSpaceWLxRSD(Likelihood):
         # package everything up into one big model datavector
         model = []
         for t in self.spectrum_types:
-            for i in self.use_lens_samples:
-                if t[0] == 'p':
-                    model.append(self.spectrum_info[t]['{}_model'.format(i)])
-                else:
-                    if t[2] == 'k':
-                        for i in self.use_source_samples:
-                            for j in self.use_source_samples:
-                                model.append(
-                                    self.spectrum_info[t]['{}_{}_model'.format(i, j)])
-                    elif (t[2] == 'd') & (t[3] == 'k'):
-                        for i in self.use_lens_samples:
-                            for j in self.use_source_samples:
-                                model.append(
-                                    self.spectrum_info[t]['{}_{}_model'.format(i, j)])
-                    elif (t[3] == 'd') | (t[3] == 'c'):
-                        for i in self.use_lens_samples:
-                            model.append(
-                                self.spectrum_info[t]['{}_model'.format(i)])
-                    else:
-                        model.append(self.spectrum_info[t]['model'.format(i)])
+            if t[0] == 'p':
+                for i in self.use_lens_samples:
+                    m = self.spectrum_info[t]['{}_model'.format(i)]
+                    model.append(m)
+            elif t[2] == 'k':
+                for i in self.use_source_samples:
+                    for j in self.use_source_samples:
+                        m = self.spectrum_info[t]['{}_{}_model'.format(i, j)]
+                        model.append(m)
+                                    
+            elif (t[2] == 'd') & (t[3] == 'k'):
+                for i in self.use_lens_samples:
+                    for j in self.use_source_samples:
+                        m = self.spectrum_info[t]['{}_{}_model'.format(i, j)]
+                        model.append(m)
+
+            elif (t[3] == 'd') | (t[3] == 'c'):
+                for i in self.use_lens_samples:
+                    m = self.spectrum_info[t]['{}_model'.format(i)]
+                    model.append(m)
+
+            else:
+                m = self.spectrum_info[t]['model'.format(i)]
+                model.append(m)                        
 
         model = np.hstack(model)
         self.model_pred = model
 
-        chi2 = np.dot(self.spectra['value'] - model,
-                      np.dot(self.cinv, self.spectra['value'] - model))
+        mask = self.scale_mask
+        diff = self.spectra['value'][mask] - model[mask]
+        chi2 = np.dot(diff, np.dot(self.cinv, diff))
 
         return(-0.5*chi2)
