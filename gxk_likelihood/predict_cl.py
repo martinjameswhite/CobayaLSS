@@ -9,7 +9,17 @@ import sys
 
 from scipy.integrate   import simps
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
+from scipy.special     import hyp2f1
 
+
+def D_of_z(OmM,zz):
+    """Scale-independent growth factor for flat LCDM."""
+    aa = 1./(1.+zz)
+    rr = (1-OmM)/OmM
+    t1 = hyp2f1(1./3,1,11./6,-aa**3*rr)
+    t2 = hyp2f1(1./3,1,11./6,-rr)
+    return( aa * t1/t2 )
+    #
 
 
 
@@ -82,6 +92,8 @@ class AngularPowerSpectra():
         # Compute the effective redshift.
         self.zeff = simps(zval*self.fchi**2/self.chival**2,x=self.chival)
         self.zeff/= simps(     self.fchi**2/self.chival**2,x=self.chival)
+        # and save linear growth.
+        self.ld2  = (D_of_z(self.OmM,zval)/D_of_z(self.OmM,self.zeff))**2
         #
     def __call__(self,PggEmu,PgmEmu,PmmEmu,cpars,bparsA,bparsX,\
                  smag=0.4,Nell=64,Lmax=1001):
@@ -106,10 +118,10 @@ class AngularPowerSpectra():
             f1f2     = self.fchi[i]*self.fchi[i]/chi**2 * Pgg(kval)
             f1m2     = self.fchi[i]*     fmag[i]/chi**2 * Pgm(kval)
             m1f2     =      fmag[i]*self.fchi[i]/chi**2 * Pgm(kval)
-            m1m2     =      fmag[i]*     fmag[i]/chi**2 * Pmm(kval)
+            m1m2     =      fmag[i]*     fmag[i]/chi**2 * Pmm(kval)*self.ld2[i]
             Cgg[:,i] = f1f2 + f1m2 + m1f2 + m1m2
             f1f2     = self.fchi[i]*self.fcmb[i]/chi**2 * Pgm(kval)
-            m1f2     =      fmag[i]*self.fcmb[i]/chi**2 * Pmm(kval)
+            m1f2     =      fmag[i]*self.fcmb[i]/chi**2 * Pmm(kval)*self.ld2[i]
             Ckg[:,i] = f1f2 + m1f2
         # and then just integrate them.
         Cgg = simps(Cgg,x=self.chival,axis=-1)
