@@ -71,6 +71,10 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
         if not hasattr(self, 'zstar'):
             self.zstar = 1098.
+
+        if not hasattr(self, 'scale_cuts'):
+            self.scale_cuts = None
+            
         self.load_data()
 
         if not hasattr(self, 'use_lens_samples'):
@@ -79,9 +83,6 @@ class HarmonicSpaceWLxRSD(Likelihood):
         if not hasattr(self, 'use_source_samples'):
             self.use_source_samples = np.arange(self.nsbins)
 
-        if not hasattr(self, 'scale_cuts'):
-            self.scale_cuts = None
-            
         if self.compute_cell:
             self.setup_projection()
 
@@ -644,7 +645,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 pdd_splines.append(pdd_spline)
 
             smag = np.array([params_values['smag_{}'.format(
-                i)] for i in range(self.ndbins)])
+                i)] for d in range(self.ndbins)])
             a_ia = params_values['a_ia']
             eta_ia = params_values['eta_ia']
 
@@ -700,10 +701,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 #all emulators should take cosmo params in the same order
                 cosmo_params = self.emulator_params['p0']['cosmology']
                 cosmo_params = [self.provider.get_param(p) for p in cosmo_params]
-            for i in range(self.ndbins):
-                if i not in self.use_lens_samples:
-                    continue
-
+            for idx, i in enumerate(self.use_lens_samples):
                 # compute multipoles and interpolate onto desired k values
                 # need to implement window/wide angle stuff still.
                 if not self.pell_emulators:
@@ -735,16 +733,16 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
                     params = np.array(params)
 
-                    k, p0 = self.emulators['p0'][i](params)
-                    k, p2 = self.emulators['p2'][i](params)
-                    k, p4 = self.emulators['p4'][i](params)
+                    k, p0 = self.emulators['p0'][idx](params)
+                    k, p2 = self.emulators['p2'][idx](params)
+                    k, p4 = self.emulators['p4'][idx](params)
 
                 if not hasattr(self, 'pkell_spectra'):
                     self.pkell_spectra = np.zeros((self.ndbins, len(k), 3))
 
-                self.pkell_spectra[i, :, 0] = p0
-                self.pkell_spectra[i, :, 1] = p2
-                self.pkell_spectra[i, :, 2] = p4
+                self.pkell_spectra[idx, :, 0] = p0
+                self.pkell_spectra[idx, :, 1] = p2
+                self.pkell_spectra[idx, :, 2] = p4
 
                 if self.compute_p0:
                     p0_spline = interp1d(k, p0, fill_value='extrapolate')

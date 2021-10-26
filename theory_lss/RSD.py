@@ -23,6 +23,7 @@ class RSDCalculator(Theory):
         self.k = np.logspace(np.log10(self.kmin),
                              np.log10(self.kmax),
                              self.nk)
+        self.k_lin = np.logspace(-3,1,200)
 
     def initialize_with_provider(self, provider):
         """
@@ -77,11 +78,10 @@ class RSDCalculator(Theory):
 
         state['pt_pk_ell_model'] = []
         for i, z in enumerate(self.z):
-            pk = pk_lin_interp.P(z, self.k * h) * h**3
-            lpt = LPT_RSD(self.k, pk, kIR=self.kIR, cutoff=10,
+            pk = pk_lin_interp.P(z, self.k_lin * h) * h**3
+            lpt = LPT_RSD(self.k_lin, pk, kIR=self.kIR, cutoff=10,
                           extrap_min=-4, extrap_max = 3,
                           threads=1, jn=5)
-            lpt.make_pltable(f[i], nmax=self.nmax, kmin=self.kmin,
-                             kmax=self.kmax, nk=self.nk,
+            lpt.make_pltable(f[i], kv=self.k, nmax=self.nmax, 
                              apar=apar[i], aperp=aperp[i])
             state['pt_pk_ell_model'].append(lpt)
