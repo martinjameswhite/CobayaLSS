@@ -5,7 +5,7 @@ import json
 
 class Emulator(object):
 
-    def __init__(self, filebase, kmin=1e-3, kmax=1):
+    def __init__(self, filebase, kmin=1e-3, kmax=0.5):
         super(Emulator, self).__init__()
 
         self.load(filebase)
