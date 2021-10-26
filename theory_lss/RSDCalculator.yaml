@@ -4,3 +4,4 @@ nk: 200
 ngauss: 3
 nmax: 4
 kIR: 0.2
+zmax: 2.0

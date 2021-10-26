@@ -47,7 +47,7 @@ class RSDCalculator(Theory):
                 self.hz_fid = np.array(requirements[t]['hz_fid'])
 
         return {'Pk_interpolator': {'k_max': 10,
-                                    'z': self.z,
+                                    'z': np.linspace(0.0, self.zmax, 100),
                                     'nonlinear': False},
                 'sigma8_z': {'z': self.z},
                 'fsigma8': {'z': self.z},
@@ -78,7 +78,9 @@ class RSDCalculator(Theory):
         state['pt_pk_ell_model'] = []
         for i, z in enumerate(self.z):
             pk = pk_lin_interp.P(z, self.k * h) * h**3
-            lpt = LPT_RSD(self.k, pk, kIR=self.kIR)
+            lpt = LPT_RSD(self.k, pk, kIR=self.kIR, cutoff=10,
+                          extrap_min=-4, extrap_max = 3,
+                          threads=1, jn=5)
             lpt.make_pltable(f[i], nmax=self.nmax, kmin=self.kmin,
                              kmax=self.kmax, nk=self.nk,
                              apar=apar[i], aperp=aperp[i])
