@@ -659,7 +659,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
             # need to implement windowing.
 
             if self.compute_c_kk:
-                Ckk_eval = interp1d(lval, Ckk, fill_value='extrapolate', axis=0)(
+                Ckk_eval = interp1d(lval, Ckk, fill_value='extrapolate', axis=0, kind='cubic')(
                     self.spectrum_info['c_kk']['separation'])
                 for i in self.use_source_samples:
                     for j in self.use_source_samples:
@@ -667,7 +667,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                             i, j)] = Ckk_eval[:, i * self.nsbins + j]
 
             if self.compute_c_dk:
-                Cdk_eval = interp1d(lval, Cdk, fill_value='extrapolate', axis=0)(
+                Cdk_eval = interp1d(lval, Cdk, fill_value='extrapolate', axis=0, kind='cubic')(
                     self.spectrum_info['c_dk']['separation'])
                 for i in self.use_lens_samples:
                     for j in self.use_source_samples:
@@ -675,20 +675,20 @@ class HarmonicSpaceWLxRSD(Likelihood):
                             i, j)] = Cdk_eval[:, i * self.nsbins + j]
 
             if self.compute_c_dd:
-                Cdd_eval = interp1d(lval, Cdd, fill_value='extrapolate', axis=0)(
+                Cdd_eval = interp1d(lval, Cdd, fill_value='extrapolate', axis=0, kind='cubic')(
                     self.spectrum_info['c_dd']['separation'])
                 for i in range(self.ndbins):
                     self.spectrum_info['c_dd']['{}_model'.format(
                         i)] = Cdd_eval[:, i]
 
             if self.compute_c_dcmbk:
-                Cdcmbk_eval = interp1d(lval, Cdcmbk, fill_value='extrapolate', axis=0)(
+                Cdcmbk_eval = interp1d(lval, Cdcmbk, fill_value='extrapolate', axis=0, kind='cubic')(
                     self.spectrum_info['c_dcmbk']['separation'])
                 self.spectrum_info['c_dcmbk']['{}_model'.format(
                     i)] = Cdcmbk_eval[:, i]
 
             if self.compute_c_cmbkcmbk:
-                Ccmbkcmbk_eval = interp1d(lval, Ccmbkcmbk, fill_value='extrapolate', axis=0)(
+                Ccmbkcmbk_eval = interp1d(lval, Ccmbkcmbk, fill_value='extrapolate', axis=0, kind='cubic')(
                     self.spectrum_info['c_cmbkcmbk']['separation'])
                 self.spectrum_info['c_cmbkcmbk']['model'] = Ccmbkcmbk_eval
 
@@ -745,17 +745,17 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 self.pkell_spectra[idx, :, 2] = p4
 
                 if self.compute_p0:
-                    p0_spline = interp1d(k, p0, fill_value='extrapolate')
+                    p0_spline = interp1d(k, p0, fill_value='extrapolate', kind='cubic')
                     self.spectrum_info['p0']['{}_model'.format(i)] = p0_spline(
                         self.spectrum_info['p0']['separation'])
 
                 if self.compute_p2:
-                    p2_spline = interp1d(k, p2, fill_value='extrapolate')
+                    p2_spline = interp1d(k, p2, fill_value='extrapolate', kind='cubic')
                     self.spectrum_info['p2']['{}_model'.format(i)] = p2_spline(
                         self.spectrum_info['p2']['separation'])
 
                 if self.compute_p4:
-                    p4_spline = interp1d(k, p4, fill_value='extrapolate')
+                    p4_spline = interp1d(k, p4, fill_value='extrapolate', kind='cubic')
                     self.spectrum_info['p4']['{}_model'.format(i)] = p4_spline(
                         self.spectrum_info['p4']['separation'])
 
