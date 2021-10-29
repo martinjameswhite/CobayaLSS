@@ -521,6 +521,26 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
         return p
 
+    def observe_theory_nowindow(self,theory,sep_th,sep_obs):
+        """Bin into k bins."""
+
+        rdat = sep_obs
+        dr = rdat[1]- rdat[0]
+        nr = len(rdat)
+        
+        thy = interp1d(sep_th, theory, fill_value='extrapolate', axis=0, kind='cubic')
+        thy_obs = np.zeros((nr,theory.shape[1]))
+
+        for i in range(rdat.size):
+            kl = rdat[i]-dr/2
+            kr = rdat[i]+dr/2
+
+            ss = np.linspace(kl, kr, 100)
+            p0     = thy(ss)
+            thy_obs[i]= np.trapz(ss[:,np.newaxis]**2*p0,x=ss,axis=0)*3/(kr**3-kl**3)
+
+        return thy_obs
+
     def logp(self, **params_values):
         """Given a dictionary of nuisance parameter values params_values
         return a log-likelihood."""
@@ -659,38 +679,38 @@ class HarmonicSpaceWLxRSD(Likelihood):
             # need to implement windowing.
 
             if self.compute_c_kk:
-                Ckk_eval = interp1d(lval, Ckk, fill_value='extrapolate', axis=0, kind='cubic')(
-                    self.spectrum_info['c_kk']['separation'])
+                Ckk_eval = self.observe_theory_nowindow(Ckk, lval,
+                                                        self.spectrum_info['c_kk']['separation'])
                 for i in self.use_source_samples:
                     for j in self.use_source_samples:
                         self.spectrum_info['c_kk']['{}_{}_model'.format(
                             i, j)] = Ckk_eval[:, i * self.nsbins + j]
 
             if self.compute_c_dk:
-                Cdk_eval = interp1d(lval, Cdk, fill_value='extrapolate', axis=0, kind='cubic')(
-                    self.spectrum_info['c_dk']['separation'])
+                Cdk_eval = self.observe_theory_nowindow(Cdk, lval,
+                                                        self.spectrum_info['c_dk']['separation'])
                 for i in self.use_lens_samples:
                     for j in self.use_source_samples:
                         self.spectrum_info['c_dk']['{}_{}_model'.format(
                             i, j)] = Cdk_eval[:, i * self.nsbins + j]
 
             if self.compute_c_dd:
-                Cdd_eval = interp1d(lval, Cdd, fill_value='extrapolate', axis=0, kind='cubic')(
-                    self.spectrum_info['c_dd']['separation'])
+                Cdd_eval = self.observe_theory_nowindow(Cdd, lval,
+                                                        self.spectrum_info['c_dd']['separation'])
                 for i in range(self.ndbins):
                     self.spectrum_info['c_dd']['{}_model'.format(
                         i)] = Cdd_eval[:, i]
 
             if self.compute_c_dcmbk:
-                Cdcmbk_eval = interp1d(lval, Cdcmbk, fill_value='extrapolate', axis=0, kind='cubic')(
-                    self.spectrum_info['c_dcmbk']['separation'])
+                Cdcmbk_eval = self.observe_theory_nowindow(Cdcmbk, lval, 
+                                                           self.spectrum_info['c_dcmbk']['separation'])
                 self.spectrum_info['c_dcmbk']['{}_model'.format(
                     i)] = Cdcmbk_eval[:, i]
 
             if self.compute_c_cmbkcmbk:
-                Ccmbkcmbk_eval = interp1d(lval, Ccmbkcmbk, fill_value='extrapolate', axis=0, kind='cubic')(
-                    self.spectrum_info['c_cmbkcmbk']['separation'])
-                self.spectrum_info['c_cmbkcmbk']['model'] = Ccmbkcmbk_eval
+                Ccmbkcmbk_eval = self.observe_theory_nowindow(Ccmbkcmbk[:,np.newaxis], lval, 
+                                                              self.spectrum_info['c_cmbkcmbk']['separation'])
+                self.spectrum_info['c_cmbkcmbk']['model'] = Ccmbkcmbk_eval[:,0]
 
         if self.compute_pell:
 
@@ -745,19 +765,21 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 self.pkell_spectra[idx, :, 2] = p4
 
                 if self.compute_p0:
-                    p0_spline = interp1d(k, p0, fill_value='extrapolate', kind='cubic')
-                    self.spectrum_info['p0']['{}_model'.format(i)] = p0_spline(
-                        self.spectrum_info['p0']['separation'])
+                    p0_obs = self.observe_theory_nowindow(p0[:,np.newaxis], k,
+                                                          self.spectrum_info['p0']['separation'])
+                    self.spectrum_info['p0']['{}_model'.format(i)] = p0_obs[:,0]
+
 
                 if self.compute_p2:
-                    p2_spline = interp1d(k, p2, fill_value='extrapolate', kind='cubic')
-                    self.spectrum_info['p2']['{}_model'.format(i)] = p2_spline(
-                        self.spectrum_info['p2']['separation'])
+                    p2_obs = self.observe_theory_nowindow(p2[:,np.newaxis], k,
+                                                          self.spectrum_info['p2']['separation'])
+                    self.spectrum_info['p2']['{}_model'.format(i)] = p2_obs[:,0]
 
                 if self.compute_p4:
-                    p4_spline = interp1d(k, p4, fill_value='extrapolate', kind='cubic')
-                    self.spectrum_info['p4']['{}_model'.format(i)] = p4_spline(
-                        self.spectrum_info['p4']['separation'])
+                    p4_obs = self.observe_theory_nowindow(p4[:,np.newaxis], k,
+                                                          self.spectrum_info['p4']['separation'])
+                    self.spectrum_info['p4']['{}_model'.format(i)] = p4_obs[:,0]
+
 
         # package everything up into one big model datavector
         model = []
