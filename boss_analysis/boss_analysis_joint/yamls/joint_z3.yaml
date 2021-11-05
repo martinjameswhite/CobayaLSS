@@ -1,0 +1,331 @@
+theory:
+  joint_likelihood_gc_emu_lnA.Taylor_pk_theory_zs:
+      zfids:
+      - 0.61
+      pk_filenames:
+      - /global/cscratch1/sd/sfschen/finite_difference/emu/boss_z_0.61_pkells.json
+      xi_filenames:
+      - /global/cscratch1/sd/sfschen/finite_difference/emu/boss_z_0.61_xiells.json
+      stop_at_error: True
+      
+likelihood:
+  joint_boss_likelihoods_emu_lnA.FullShapePlusBAOEmu_Z3:
+    fs_kmins:
+    - 0.02
+    - 0.02
+    fs_mmaxs:
+    - 0.20
+    - 0.20
+    fs_qmaxs:
+    - 0.20
+    - 0.20
+    bao_rmins:
+    - 80.
+    bao_rmaxs:
+    - 130.
+    stop_at_error: True
+
+params:
+  H0:
+    prior:
+      min: 60.0
+      max: 80.0
+    ref:
+      dist: norm
+      loc:  69.2267
+      scale: 1.0
+    latex: H_0
+  omegam:
+    prior:
+      min: 0.2
+      max: 0.4
+    ref:
+      dist: norm
+      loc: 0.31114202
+      scale: 0.05
+    latex: \Omega_\mathrm{m}
+  logA:
+    prior:
+      dist: uniform
+      min:  1.61
+      max:  3.91
+    ref:
+      dist:  norm
+      loc:   3.00
+      scale: 0.05
+    latex: \log(10^{10} A_\mathrm{s})
+  sigma8:
+    latex: \sigma_8
+    
+  # NGCz3
+  bsig8_NGCz3:
+    prior:
+      dist: uniform
+      min:  0.5
+      max:  3.0
+    ref:
+      dist:  norm
+      loc:   1.8254628 
+      scale: 0.05
+    latex: (1+b_1^{N3})\sigma_8
+  b2_NGCz3:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 10.
+    ref:
+      dist:  norm
+      loc:   -2.8775721
+      scale: 0.1
+    latex: b_2^{N3}
+  bs_NGCz3:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 5.0
+    ref:
+      dist:  norm
+      loc:   1.3425739
+      scale: 0.1
+    latex: b_s^{N3}
+  alpha0_NGCz3:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 100.
+    ref:
+      dist:  norm
+      loc:   3.6416256
+      scale: 0.5
+    latex: \alpha_0^{N3}
+  alpha2_NGCz3:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 100.
+    ref:
+      dist:  norm
+      loc:   18.663294
+      scale: 0.5
+    latex: \alpha_2^{N3}
+  SN0_NGCz3:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 1000.
+    ref:
+      dist:  norm
+      loc:   474.25309
+      scale: 100.
+    latex: SN_0^{N3}
+  SN2_NGCz3:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 5e4
+    ref:
+      dist:  norm
+      loc:   4248.9989
+      scale:  1e3
+    latex: SN_2^{N3}
+
+  # SGCz3
+  bsig8_SGCz3:
+    prior:
+      dist: uniform
+      min:  0.5
+      max:  3.0
+    ref:
+      dist:  norm
+      loc:   1.7090505
+      scale: 0.05
+    latex: (1+b_1^{S3})\sigma_8
+  b2_SGCz3:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 10.
+    ref:
+      dist:  norm
+      loc:   0.82613992
+      scale: 0.1
+    latex: b_2^{S3}
+  bs_SGCz3:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 5.0
+    ref:
+      dist:  norm
+      loc:   -1.401814
+      scale: 0.1
+    latex: b_s^{S3}
+  alpha0_SGCz3:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 100.
+    ref:
+      dist:  norm
+      loc:   -32.849574
+      scale: 0.5
+    latex: \alpha_0^{S3}
+  alpha2_SGCz3:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 100.
+    ref:
+      dist:  norm
+      loc:   8.4665742 
+      scale: 0.5
+    latex: \alpha_2^{S3}
+  SN0_SGCz3:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 1000.
+    ref:
+      dist:  norm
+      loc:   -407.04845
+      scale: 100.
+    latex: SN_0^{S3}
+  SN2_SGCz3:
+    prior:
+      dist:  norm
+      loc:   0.0
+      scale: 5e4
+    ref:
+      dist:  norm
+      loc:  -19243.186
+      scale:  1e3
+    latex: SN_2^{S3}
+ 
+    
+  # Post-recon parameters
+  B1_z3:
+    prior:
+      dist: uniform
+      min: 0.0
+      max: 5.0
+    ref:
+      dist: norm
+      loc: 1.12
+      scale: 0.1
+    latex: B_1^{z3}
+  F_z3:
+    prior:
+      dist: uniform
+      min: 0.0
+      max: 5.0
+    ref:
+      dist: norm
+      loc: 0.63
+      scale: 0.1
+    latex: F^{z3}
+  # For these priors we take the philosophy that rba0^2 (a0 + a1/rbao) <~ <rbao^2 xi> ~ 50
+  # i.e. a0 <~ 5e-3, a2 <~ 5e-1, and we enforce a 10x wide Gaussian prior on this estimation
+  M0_z3:
+    prior:
+      dist: norm
+      loc: 0.
+      scale: 5e-2
+    ref:
+      dist: norm
+      loc: 0.00405758
+      scale: 0.001
+    latex: M_0^{z3}
+  M1_z3:
+    prior:
+      dist: norm
+      loc: 0.
+      scale: 5.
+    ref:
+      dist: norm
+      loc: -0.30657935
+      scale: 0.1
+    latex: M_1^{z3}
+  M2_z3:
+    value: 0.
+  Q0_z3:
+    prior:
+      dist: norm
+      loc: 0.
+      scale: 5e-2
+    ref:
+      dist: norm
+      loc: -0.00699841
+      scale: 0.001
+    latex: Q_0^{z3}
+  Q1_z3:
+    prior:
+      dist: norm
+      loc: 0.
+      scale: 5.
+    ref:
+      dist: norm
+      loc: 0.93152832
+      scale: 0.1
+    latex: Q_1^{z3}
+  Q2_z3:
+    value: 0.
+
+
+    
+
+sampler:
+  evaluate:
+    override:
+      # cosmology
+      sigma8: 0.81016
+      omegam: 0.311051
+      H0: 67.66
+      # NGCz3
+      bsig8_NGCz3: 1.535805
+      b2_NGCz3:   -2.47490318
+      bs_NGCz3:   -0.17495553
+      alpha0_NGCz3: -0.1791873
+      alpha2_NGCz3: 1.18218936
+      SN0_NGCz3: 0.
+      SN2_NGCz3: 29296.768
+      # SGCz3
+      bsig8_SGCz3: 1.535805
+      b2_SGCz3:   -2.47490318
+      bs_SGCz3:   -0.17495553
+      alpha0_SGCz3: -0.1791873
+      alpha2_SGCz3: 1.18218936
+      SN0_SGCz3: 0.
+      SN2_SGCz3: 29296.768
+      # z3 recon:
+      B1_z3: 1.11901047
+      F_z3: 0.63034335
+      M0_z3:  0.00405758
+      M1_z3: -0.30657935
+      Q0_z3: -0.00699841
+      Q1_z3: 0.93152832
+timing: True
+output: chains/test_gc_emu
+stop_on_error: True
+
+sampler:
+  mcmc:
+    #covmat: auto
+    covmat: /global/cscratch1/sd/sfschen/boss_analysis_joint/covini/boss.covini
+#    covmat: /global/cscratch1/sd/sfschen/CobayaLSS/chains/joint_z3.covini
+    learn_proposal: True
+    learn_proposal_Rminus1_max: 15.
+    output_every: 60s
+    measure_speeds: False
+    max_tries: 500
+    drag: False
+    oversample_power: 0.4
+    proposal_scale: 1.5
+    Rminus1_stop: 0.01
+    blocking:
+      - [ 1, [logA,omegam,H0]]
+      - [ 2, [bsig8_NGCz3,b2_NGCz3,bs_NGCz3,alpha0_NGCz3,alpha2_NGCz3,SN0_NGCz3,SN2_NGCz3,bsig8_SGCz3,b2_SGCz3,bs_SGCz3,alpha0_SGCz3,alpha2_SGCz3,SN0_SGCz3,SN2_SGCz3,B1_z3,F_z3,M0_z3,M1_z3,Q0_z3,Q1_z3]]
+output: chains/bossz3_joint_lnA
+debug: True
+debug_file: chains/bossz3_joint_lnA
+timing: True
+stop_on_error: True

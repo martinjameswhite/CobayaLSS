@@ -1,0 +1,25 @@
+zfid:     0.61
+
+fs_sample_names:
+- NGCz3
+- SGCz3
+
+fs_datfns: 
+- /global/cscratch1/sd/sfschen/boss_data_renorm/pk/pk_NGC_z3.dat
+- /global/cscratch1/sd/sfschen/boss_data_renorm/pk/pk_SGC_z3.dat
+
+bao_sample_names:
+- z3
+
+bao_datfns: 
+- /global/cscratch1/sd/sfschen/boss_data_renorm/xi/z3.xi
+
+covfn: /global/cscratch1/sd/sfschen/boss_data_renorm/covariances/cov_joint_NGCSGCXi_z3.dat
+
+fs_matMfns: 
+- /global/cscratch1/sd/sfschen/boss_data_renorm/matrices/M_BOSS_DR12_NGC_z3_V6C_1_1_1_1_1_1200_2000.matrix.gz
+- /global/cscratch1/sd/sfschen/boss_data_renorm/matrices/M_BOSS_DR12_SGC_z3_V6C_1_1_1_1_1_1200_2000.matrix.gz
+
+fs_matWfns: 
+- /global/cscratch1/sd/sfschen/boss_data_renorm/matrices/W_BOSS_DR12_NGC_z3_V6C_1_1_1_1_1_10_200_2000_averaged_v1.matrix.gz
+- /global/cscratch1/sd/sfschen/boss_data_renorm/matrices/W_BOSS_DR12_SGC_z3_V6C_1_1_1_1_1_10_200_2000_averaged_v1.matrix.gz
