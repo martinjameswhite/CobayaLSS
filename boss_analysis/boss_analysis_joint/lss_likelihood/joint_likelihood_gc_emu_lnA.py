@@ -237,8 +237,7 @@ class JointLikelihood(Likelihood):
         
     def combine_bias_terms_pkell(self,bvec, p0ktable, p2ktable, p4ktable):
         '''
-        Same as function above but for the multipoles.
-        
+        Combined the individual terms, times the biases, to get the full Pell.
         Returns k, p0, p2, p4, assuming AP parameters from input p{ell}ktable
         '''
     
@@ -339,8 +338,7 @@ class JointLikelihood(Likelihood):
         # wide angle
         expanded_model = np.matmul(self.matMs[fs_sample_name], thy )
         # Convolve with window (true) −> (conv) see eq. 2.18
-        # Multiply by ad-hoc factor
-        convolved_model = 0.89 * np.matmul(self.matWs[fs_sample_name], expanded_model )
+        convolved_model = np.matmul(self.matWs[fs_sample_name], expanded_model )
         
         #np.savetxt('pobs_' + self.zstr + '_' + self.sample_name + '.txt',convolved_model)
         
