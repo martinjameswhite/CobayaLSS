@@ -277,7 +277,8 @@ class AngularPowerSpectra():
         zval      = self.zchi(self.chival)
         self.fchi = Spline(self.zz,self.dndz*E_of_z(self.zz))(zval)
         self.fchi/= simps(self.fchi,x=self.chival)
-        # and W(chi) for the CMB
+        # and W(chi) for the CMB.  Maybe could replace OmM below
+        # by OmM(1-fnu), but that is a small correction for now.
         self.chistar= chi_of_z(1098.)
         self.fcmb = 1.5*self.OmM*(1.0/2997.925)**2*(1+zval)
         self.fcmb*= self.chival*(self.chistar-self.chival)/self.chistar
