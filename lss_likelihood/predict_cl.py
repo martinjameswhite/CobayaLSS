@@ -155,42 +155,42 @@ class AngularPowerSpectra():
         for i, chi in enumerate(self.chival):
             kval = (ell+0.5)/chi            
             Ccmbkcmbk[:, i] = self.w_cmbk[i]**2 / \
-                chi**2 * Pmm(self.zval[i], kval)
+                chi**2 * Pmm.P(self.zval[i], kval)
 
         for i in range(self.n_lens):
             for j, chi in enumerate(self.chival):
                 kval = (ell+0.5)/chi
-                f1f2 = self.w_d[i][j]*self.w_d[i][j]/chi**2 * Pgg[i](self.zeff_d[i], kval)
-                f1m2 = self.w_d[i][j] * self.w_mag[i][j]/chi**2 * Pgm[i](self.zeff_d[i], kval)
-                m1f2 = self.w_mag[i][j] * self.w_d[i][j] / chi**2 * Pgm[i](self.zeff_d[i], kval)
-                m1m2 = self.w_mag[i][j]**2 / chi**2 * Pmm(self.zval[j], kval)
+                f1f2 = self.w_d[i][j]*self.w_d[i][j]/chi**2 * Pgg[i].P(self.zeff_d[i], kval)
+                f1m2 = self.w_d[i][j] * self.w_mag[i][j]/chi**2 * Pgm[i].P(self.zeff_d[i], kval)
+                m1f2 = self.w_mag[i][j] * self.w_d[i][j] / chi**2 * Pgm[i].P(self.zeff_d[i], kval)
+                m1m2 = self.w_mag[i][j]**2 / chi**2 * Pmm.P(self.zval[j], kval)
                 Cdd[:, i, j] = f1f2 + f1m2 + m1f2 + m1m2
 
         for i in range(self.n_lens):
             for j, chi in enumerate(self.chival):
                 kval = (ell+0.5)/chi
-                f1f2 = self.w_d[i][j] * self.w_cmbk[j] / chi**2 * Pgm[i](self.zeff_d[i], kval)
-                m1f2 = self.w_mag[i][j] * self.w_cmbk[i] / chi**2 * Pmm(self.zval[j], kval)
+                f1f2 = self.w_d[i][j] * self.w_cmbk[j] / chi**2 * Pgm[i].P(self.zeff_d[i], kval)
+                m1f2 = self.w_mag[i][j] * self.w_cmbk[i] / chi**2 * Pmm.P(self.zval[j], kval)
                 Cdcmbk[:, i, j] = f1f2 + m1f2
 
         for i in range(self.n_lens):
             for j in range(self.n_source):
                 for k, chi in enumerate(self.chival):
                     kval = (ell+0.5)/chi
-                    f1f2 = self.w_d[i][k] * self.w_k[j][k] / chi**2 * Pgm[i](self.zeff_d[i], kval)
-                    f1i2 = self.w_d[i][k] * self.w_ia[j][k] / chi**2 * Pgm[i](self.zeff_d[i], kval)
-                    f1m2 = self.w_d[j][k] * self.w_mag[j][k] / chi**2 * Pgm[i](self.zeff_d[i], kval)
-                    m1i2 = self.w_mag[i][k] * self.w_ia[j][k] / chi**2 * Pmm(self.zval[k], kval)
+                    f1f2 = self.w_d[i][k] * self.w_k[j][k] / chi**2 * Pgm[i].P(self.zeff_d[i], kval)
+                    f1i2 = self.w_d[i][k] * self.w_ia[j][k] / chi**2 * Pgm[i].P(self.zeff_d[i], kval)
+                    f1m2 = self.w_d[j][k] * self.w_mag[j][k] / chi**2 * Pgm[i].P(self.zeff_d[i], kval)
+                    m1i2 = self.w_mag[i][k] * self.w_ia[j][k] / chi**2 * Pmm.P(self.zval[k], kval)
                     Cdk[:, i * self.n_source + j, k] = f1f2 + f1i2 + f1m2 + m1i2
 
         for i in range(self.n_source):
             for j in range(self.n_source):
                 for k, chi in enumerate(self.chival):
                     kval = (ell + 0.5) / chi
-                    f1f2 = self.w_k[i][k] * self.w_k[j][k] / chi**2 * Pmm(self.zval[k], kval)
-                    f1i2 = self.w_k[i][k] * self.w_ia[j][k] / chi**2 * Pmm(self.zval[k], kval)
-                    i1f2 = self.w_ia[i][k] * self.w_k[j][k] / chi**2 * Pmm(self.zval[k], kval)
-                    i1i2 = self.w_ia[i][k] * self.w_ia[j][k] / chi**2 * Pmm(self.zval[k], kval)
+                    f1f2 = self.w_k[i][k] * self.w_k[j][k] / chi**2 * Pmm.P(self.zval[k], kval)
+                    f1i2 = self.w_k[i][k] * self.w_ia[j][k] / chi**2 * Pmm.P(self.zval[k], kval)
+                    i1f2 = self.w_ia[i][k] * self.w_k[j][k] / chi**2 * Pmm.P(self.zval[k], kval)
+                    i1i2 = self.w_ia[i][k] * self.w_ia[j][k] / chi**2 * Pmm.P(self.zval[k], kval)
                     Ckk[:, i * self.n_source + j, k] = f1f2 + f1i2 + i1f2 + i1i2
 
 

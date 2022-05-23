@@ -19,17 +19,15 @@ conda install healpy -y
 #
 # Set up the environment for Jupyter.
 conda install ipykernel ipython jupyter # Should already be there.
-python3 -m ipykernel install --user --name cobaya --display-name Cobaya-env
+python3 -m ipykernel install --user --name cobaya --display-name cobaya-env
 #
 # Now install Cobaya
 python3 -m pip install cobaya  # --upgrade
 #
 # and any "cosmo" packages it wants
-cobaya-install cosmo -p /global/cscratch1/sd/mwhite/Cobaya/Packages
-#
-# Install velocileptors,
-#python3 -m pip install git+https://github.com/sfschen/velocileptors
-# and Anzu if you want.
-#conda install -c conda-forge pyccl chaospy -y
-#python3 -m pip install -v git+https://github.com/kokron/anzu
-#
+cobaya-install cosmo -p /global/cscratch1/sd/<username>/Cobaya/Packages #replace <username>
+# Install velocileptors, and anzu
+python3 -m pip install git+https://github.com/sfschen/velocileptors
+conda install -c conda-forge chaospy -y
+python3 -m pip install -v git+https://github.com/kokron/anzu
+
