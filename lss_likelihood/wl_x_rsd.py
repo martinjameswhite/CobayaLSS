@@ -5,6 +5,7 @@ from cobaya.theories.cosmo import PowerSpectrumInterpolator
 from itertools import permutations, product
 from scipy.interpolate import interp1d
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
+from yaml import Loader
 import warnings
 import yaml
 import sys
@@ -90,7 +91,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
         """Loads the required data."""
 
         with open(self.datavector_info_filename, 'r') as fp:
-            datavector_info = yaml.load(fp)
+            datavector_info = yaml.load(fp, Loader=Loader)
 
         # must specify a file with the actual correlation functions
         # in it. Should have the following columns: datavector type
@@ -218,12 +219,18 @@ class HarmonicSpaceWLxRSD(Likelihood):
                     if (t[0]=='p') | (t=='c_dd') | (t=='c_dcmbk'):
                         for i in self.use_lens_samples:
                             try:
-                                sep_min, sep_max = scale_cut_dict['{}_{}'.format(i, i)]
+                                if t=='c_dcmbk':
+                                    sep_min, sep_max = scale_cut_dict['{}_{}'.format(i, 0)]
+                                    mask = (sep_min <= sep_unmasked) & (sep_unmasked <= sep_max)
+                                    scale_cut_mask['{}_{}'.format(i,0)] = mask                                    
+                                else:
+                                    sep_min, sep_max = scale_cut_dict['{}_{}'.format(i, i)]
+                                    mask = (sep_min <= sep_unmasked) & (sep_unmasked <= sep_max)
+                                    scale_cut_mask['{}_{}'.format(i,i)] = mask                                    
                             except:
                                 raise ValueError('Scale cuts not provided for {} bin pair {},{}'.format(t,i,i))
 
-                            mask = (sep_min <= sep_unmasked) & (sep_unmasked <= sep_max)
-                            scale_cut_mask['{}_{}'.format(i,i)] = mask
+
                             
                     elif (t=='c_dk'):
                         for i in self.use_lens_samples:
@@ -296,6 +303,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 self.spectrum_info[t1]['bins0'], \
                 self.spectrum_info[t1]['bins1']
 
+
             for zb00, zb01, zb10, zb11 in product(n00, n01, n10, n11):
                 if ((zb00, zb01), (zb10, zb11)) in zbin_counter[(t0, t1)]:
                     continue
@@ -315,6 +323,18 @@ class HarmonicSpaceWLxRSD(Likelihood):
                            (cov_raw['zbin10'] == zb10) &
                            (cov_raw['zbin11'] == zb11)))
 
+                if len(idxi)==0:
+#                    print("Warning: didn't find any spectra with spec_type={}, zb0={}, zb1={}. Proceeding, but double check your data vector and covariance".format(t0, zb00, zb01))
+                    zbin_counter[(t0, t1)].extend(
+                        permutations(((zb00, zb01), (zb10, zb11))))
+                    
+                    continue
+                if len(idxj)==0:
+#                    print("Warning: didn't find any spectra with spec_type={}, zb0={}, zb1={}. Proceeding, but double check your data vector and covariance".format(t1, zb10, zb11))
+                    zbin_counter[(t0, t1)].extend(
+                        permutations(((zb00, zb01), (zb10, zb11))))                    
+                    continue
+                
                 ii, jj = np.meshgrid(idxi, idxj, indexing='ij')
 
                 start_idx = np.min(idxi)
@@ -344,7 +364,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
         cov_scale_mask_i, cov_scale_mask_j = np.meshgrid(self.scale_mask, self.scale_mask, indexing='ij')
         
         self.cinv = np.linalg.inv(self.cov[cov_scale_mask_i, cov_scale_mask_j].reshape(self.n_dv_masked, self.n_dv_masked))
-        
+        print('done load cov', flush=True)
 
     def setup_projection(self):
 
@@ -704,8 +724,9 @@ class HarmonicSpaceWLxRSD(Likelihood):
             if self.compute_c_dcmbk:
                 Cdcmbk_eval = self.observe_theory_nowindow(Cdcmbk, lval, 
                                                            self.spectrum_info['c_dcmbk']['separation'])
-                self.spectrum_info['c_dcmbk']['{}_model'.format(
-                    i)] = Cdcmbk_eval[:, i]
+                for i in self.use_lens_samples:
+                    self.spectrum_info['c_dcmbk']['{}_model'.format(
+                        i)] = Cdcmbk_eval[:, i]
 
             if self.compute_c_cmbkcmbk:
                 Ccmbkcmbk_eval = self.observe_theory_nowindow(Ccmbkcmbk[:,np.newaxis], lval, 
@@ -753,16 +774,22 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
                     params = np.array(params)
 
-                    k, p0 = self.emulators['p0'][idx](params)
-                    k, p2 = self.emulators['p2'][idx](params)
-                    k, p4 = self.emulators['p4'][idx](params)
+                    if self.compute_p0:
+                        k, p0 = self.emulators['p0'][idx](params)
+                    if self.compute_p2:
+                        k, p2 = self.emulators['p2'][idx](params)
+                    if self.compute_p4:
+                        k, p4 = self.emulators['p4'][idx](params)
 
                 if not hasattr(self, 'pkell_spectra'):
                     self.pkell_spectra = np.zeros((self.ndbins, len(k), 3))
 
-                self.pkell_spectra[idx, :, 0] = p0
-                self.pkell_spectra[idx, :, 1] = p2
-                self.pkell_spectra[idx, :, 2] = p4
+                if self.compute_p0:
+                    self.pkell_spectra[idx, :, 0] = p0
+                if self.compute_p2:
+                    self.pkell_spectra[idx, :, 1] = p2
+                if self.compute_p4:
+                    self.pkell_spectra[idx, :, 2] = p4
 
                 if self.compute_p0:
                     p0_obs = self.observe_theory_nowindow(p0[:,np.newaxis], k,
