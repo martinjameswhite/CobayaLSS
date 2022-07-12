@@ -1051,7 +1051,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
             if self.compute_c_cmbkcmbk:
                 if hasattr(self, 'cW'):
-                    Ccmbkcmbk_eval = self.observe_cell(Ccmbkcmbk, self.cW['c_cmbkcmbk'], 'c_cmbkcmbk')
+                    Ccmbkcmbk_eval = self.observe_cell(Ccmbkcmbk[:,np.newaxis], self.cW['c_cmbkcmbk'], 'c_cmbkcmbk')
                 else:
                     Ccmbkcmbk_eval = self.observe_theory_nowindow(
                         Ccmbkcmbk[:, np.newaxis],
