@@ -990,6 +990,9 @@ class HarmonicSpaceWLxRSD(Likelihood):
                         self.spectrum_info["c_kk"][
                             "{}_{}_model".format(i, j)
                         ] = Ckk_eval[:, counter]
+                        self.spectrum_info["c_kk"][
+                            "{}_{}_model_unobs".format(i, j)
+                        ] = Ckk[:, counter]                        
                         counter += 1
 
             if self.compute_c_dk:
@@ -1007,6 +1010,10 @@ class HarmonicSpaceWLxRSD(Likelihood):
                         self.spectrum_info["c_dk"][
                             "{}_{}_model".format(i, j)
                         ] = Cdk_eval[:, counter]
+                        
+                        self.spectrum_info["c_dk"][
+                            "{}_{}_model_unobs".format(i, j)
+                        ] = Cdk[:, counter]                        
                         counter += 1
 
             if self.compute_c_dd:
@@ -1019,6 +1026,8 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 counter = 0
                 for i in self.use_lens_samples:
                     self.spectrum_info["c_dd"]["{}_model".format(i)] = Cdd_eval[:, counter]
+                    self.spectrum_info["c_dd"]["{}_model_unobs".format(i)] = Cdd[:, counter]
+                    
                     counter += 1
 
             if self.compute_c_dcmbk:
@@ -1034,6 +1043,9 @@ class HarmonicSpaceWLxRSD(Likelihood):
                     self.spectrum_info["c_dcmbk"]["{}_model".format(i)] = Cdcmbk_eval[
                         :, counter
                     ]
+                    self.spectrum_info["c_dcmbk"]["{}_model_unobs".format(i)] = Cdcmbk[
+                        :, counter
+                    ]                    
                     counter += 1
 
             if self.compute_c_cmbkcmbk:
@@ -1047,6 +1059,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                     )
                     
                 self.spectrum_info["c_cmbkcmbk"]["model"] = Ccmbkcmbk_eval[:, 0]
+                self.spectrum_info["c_cmbkcmbk"]["model_unobs"] = Ccmbkcmbk[:, 0]
 
         if self.compute_pell:
 
