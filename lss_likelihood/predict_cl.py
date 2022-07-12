@@ -177,7 +177,7 @@ class AngularPowerSpectra:
         ell = np.logspace(1, np.log10(Lmax), Nell)  # More ell's are cheap.
         Cdd = np.zeros((Nell, self.n_lens, self.Nchi))
         Cdk = np.zeros((Nell, self.n_lens * self.n_source, self.Nchi))
-        Ckk = np.zeros((Nell, self.n_source * (self.n_source + 1) / 2, self.Nchi))
+        Ckk = np.zeros((Nell, int(self.n_source * (self.n_source + 1) / 2), self.Nchi))
         Cdcmbk = np.zeros((Nell, self.n_lens, self.Nchi))
         Ccmbkcmbk = np.zeros((Nell, self.Nchi))
 
