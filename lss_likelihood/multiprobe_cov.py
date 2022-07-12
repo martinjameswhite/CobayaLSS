@@ -95,7 +95,7 @@ class MultiprobeCovariance():
                     window_info.append(w)
                     
                     if cov_type == 'plk_plk':
-                        cov = self.get_Cllkk(self.k)
+                        cov = self.get_Cllkk_auto(self.k)
                         
                     
                     
