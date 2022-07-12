@@ -173,7 +173,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
             idx = self.spectra["spectrum_type"] == t
             z0 = self.spectra["zbin0"][idx][0]
             z1 = self.spectra["zbin1"][idx][0]
-            idx &= (self.spectra["zbin0"] == z0) & (self.spectra["zbin0"] == z1)
+            idx &= (self.spectra["zbin0"] == z0) & (self.spectra["zbin1"] == z1)
             ndv_per_bin = np.sum(idx)
             sep_unmasked = self.spectra[idx]["separation"]
 
@@ -236,7 +236,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 
                 #want per bin windows here
                 for ij in list(window_matrix_files[k].keys()):
-                    self.cW[k][ij] = np.loadtxt(window_matrix_files[k][ij]))
+                    self.cW[k][ij] = np.loadtxt(window_matrix_files[k][ij])
 
 #            self.ell_obs = []
 #            for i in range(len(ell_obs_files)):
@@ -762,9 +762,10 @@ class HarmonicSpaceWLxRSD(Likelihood):
         return thy_obs
 
     def observe_theory_wide_angle_and_window(
-        self, p0_theory, p2_theory, p4_theory, M, W, kth
+            self, p0_theory, p2_theory, p4_theory, M, W, kth, ko
     ):
 
+        nobs = len(ko)
         p0interp = interp1d(self.k_rsd, p0_theory, fill_value="extrapolate")
         p2interp = interp1d(self.k_rsd, p2_theory, fill_value="extrapolate")
         p4interp = interp1d(self.k_rsd, p4_theory, fill_value="extrapolate")
@@ -774,7 +775,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
         p4model = p4interp(kth)
         model_conv = np.dot(W, np.dot(M, np.hstack([p0model, p2model, p4model])))
 
-        return model_conv
+        return model_conv[:nobs], model_conv[nobs:2*nobs], model_conv[2*nobs:3*nobs], model_conv[3*nobs:4*nobs], model_conv[4*nobs:]
 
     def observe_cell(self, cell_theory, W, spectrum_type, Lmax=1001):
         
@@ -854,7 +855,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                     (self.ndbins, self.nz_proj, self.emulators["p_mm"].nk, 3)
                 )
 
-            for i in self.use_lens_samples:
+            for idx, i in enumerate(self.use_lens_samples):
 
                 b1 = params_values["b1_{}".format(i)]
                 b2 = params_values["b2_{}".format(i)]
@@ -939,13 +940,13 @@ class HarmonicSpaceWLxRSD(Likelihood):
                     k, pdd = self.emulators["p_dd"](param_grid)
 
                 pmm_spline = PowerSpectrumInterpolator(self.z, self.k, pmm.T)
-                self.rs_power_spectra[i, :, :, 0] = pmm.T
+                self.rs_power_spectra[idx, :, :, 0] = pmm.T
 
                 pdm_spline = PowerSpectrumInterpolator(self.z, self.k, pdm.T)
-                self.rs_power_spectra[i, :, :, 1] = pdm.T
+                self.rs_power_spectra[idx, :, :, 1] = pdm.T
 
                 pdd_spline = PowerSpectrumInterpolator(self.z, self.k, pdd.T)
-                self.rs_power_spectra[i, :, :, 2] = pdd.T
+                self.rs_power_spectra[idx, :, :, 2] = pdd.T
 
                 pmm_spline = pmm_spline
                 pdm_splines.append(pdm_spline)
@@ -1135,8 +1136,9 @@ class HarmonicSpaceWLxRSD(Likelihood):
                     self.pkell_spectra[idx, :, 2] = p4
 
                 if hasattr(self, "Wmat"):
-                    p0_obs, p2_obs, p4_obs = self.observe_theory_wide_angle_and_window(
-                        p0, p2, p4, self.M[idx], self.Wmat[idx], self.kth_rsd[idx]
+                    p0_obs, _, p2_obs, _, p4_obs = self.observe_theory_wide_angle_and_window(
+                        p0,  p2, p4, self.M[idx], self.Wmat[idx], self.kth_rsd[idx],
+                        self.ko_rsd[idx]
                     )
                     self.spectrum_info["p0"]["{}_model".format(i)] = p0_obs
                     self.spectrum_info["p2"]["{}_model".format(i)] = p2_obs
