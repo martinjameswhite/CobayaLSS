@@ -696,42 +696,117 @@ class HarmonicSpaceWLxRSD(Likelihood):
         pkarr[5, :] *= 0.25
         pkarr[6, :] *= 2
         pkarr[7, :] *= 2
-        ret = pkarr[0, :]+0.5*b1*pkarr[1, :] +\
-            0.5*b2*pkarr[3, :]+0.5*bs*pkarr[6, :]
+        ret = (
+            pkarr[0, :]
+            + 0.5 * b1 * pkarr[1, :]
+            + 0.5 * b2 * pkarr[3, :]
+            + 0.5 * bs * pkarr[6, :]
+        )
         return ret
 
     def combine_pkell_spectra(self, bvec, pktable):
-        '''
+        """
         Returns pell, assuming AP parameters from input p{ell}ktable
-        '''
+        """
 
         b1, b2, bs, b3, alpha0, alpha2, alpha4, alpha6, sn, sn2, sn4 = bvec
-        bias_monomials = np.array([1, b1, b1**2, b2, b1*b2, b2**2, bs, b1*bs,
-                                   b2*bs, bs**2, b3, b1*b3, alpha0, alpha2,
-                                   alpha4, alpha6, sn, sn2, sn4])
+        bias_monomials = np.array(
+            [
+                1,
+                b1,
+                b1**2,
+                b2,
+                b1 * b2,
+                b2**2,
+                bs,
+                b1 * bs,
+                b2 * bs,
+                bs**2,
+                b3,
+                b1 * b3,
+                alpha0,
+                alpha2,
+                alpha4,
+                alpha6,
+                sn,
+                sn2,
+                sn4,
+            ]
+        )
         p = np.sum(pktable * bias_monomials[:, np.newaxis, np.newaxis], axis=0)
 
         return p
 
-    def observe_theory_nowindow(self,theory,sep_th,sep_obs):
+    def observe_theory_nowindow(self, theory, sep_th, sep_obs):
         """Bin into k bins."""
 
         rdat = sep_obs
-        dr = rdat[1]- rdat[0]
+        dr = rdat[1] - rdat[0]
         nr = len(rdat)
-        
-        thy = interp1d(sep_th, theory, fill_value='extrapolate', axis=0, kind='cubic')
-        thy_obs = np.zeros((nr,theory.shape[1]))
+
+        thy = interp1d(sep_th, theory, fill_value="extrapolate", axis=0, kind="cubic")
+        thy_obs = np.zeros((nr, theory.shape[1]))
 
         for i in range(rdat.size):
-            kl = rdat[i]-dr/2
-            kr = rdat[i]+dr/2
+            kl = rdat[i] - dr / 2
+            kr = rdat[i] + dr / 2
 
             ss = np.linspace(kl, kr, 100)
-            p0     = thy(ss)
-            thy_obs[i]= np.trapz(ss[:,np.newaxis]**2*p0,x=ss,axis=0)*3/(kr**3-kl**3)
+            p0 = thy(ss)
+            thy_obs[i] = (
+                np.trapz(ss[:, np.newaxis] ** 2 * p0, x=ss, axis=0)
+                * 3
+                / (kr**3 - kl**3)
+            )
 
         return thy_obs
+
+    def observe_theory_wide_angle_and_window(
+        self, p0_theory, p2_theory, p4_theory, M, W, kth
+    ):
+
+        p0interp = interp1d(self.k_rsd, p0_theory, fill_value="extrapolate")
+        p2interp = interp1d(self.k_rsd, p2_theory, fill_value="extrapolate")
+        p4interp = interp1d(self.k_rsd, p4_theory, fill_value="extrapolate")
+
+        p0model = p0interp(kth)
+        p2model = p2interp(kth)
+        p4model = p4interp(kth)
+        model_conv = np.dot(W, np.dot(M, np.hstack([p0model, p2model, p4model])))
+
+        return model_conv
+
+    def observe_cell(self, cell_theory, W, spectrum_type, Lmax=1001):
+        
+        n_ell_obs = W[list(W.keys())[0]].shape[0]
+        cell_obs = np.zeros((n_ell_obs, cell_theory.shape[-1]))
+        counter = 0
+        
+        if spectrum_type == 'c_cmbkcmbk':
+            cell_obs[:,0] = np.dot(W['0_0'][:,:Lmax], cell_theory[:Lmax, 0])
+        
+        elif spectrum_type == 'c_kk':
+
+            for i in self.use_source_samples:
+                for j in self.use_source_samples:
+                    if j<i:continue
+                    cell_obs[:,counter] = np.dot(W['{}_{}'.format(i,j)][:,:Lmax], cell_theory[:Lmax, counter])
+                    counter += 1
+        
+        elif spectrum_type == 'c_dk':
+            
+            for i in self.use_lens_samples:
+                for j in self.use_source_samples:
+                    cell_obs[:,counter] = np.dot(W['{}_{}'.format(i,j)][:,:Lmax], cell_theory[:Lmax, counter])
+                    counter += 1 
+
+        elif (spectrum_type == 'c_dcmbk') | (spectrum_type == 'c_dd'):
+            for i in self.use_lens_samples:
+                cell_obs[:,counter] = np.dot(W['{}'.format(i)][:,:Lmax], cell_theory[:Lmax, counter])
+                counter += 1
+                
+        return cell_obs
+
 
     def logp(self, **params_values):
         """Given a dictionary of nuisance parameter values params_values
@@ -1046,56 +1121,65 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 if self.compute_p4:
                     self.pkell_spectra[idx, :, 2] = p4
 
-                if self.compute_p0:
-                    p0_obs = self.observe_theory_nowindow(p0[:,np.newaxis], k,
-                                                          self.spectrum_info['p0']['separation'])
-                    self.spectrum_info['p0']['{}_model'.format(i)] = p0_obs[:,0]
+                if hasattr(self, "Wmat"):
+                    p0_obs, p2_obs, p4_obs = self.observe_theory_wide_angle_and_window(
+                        p0, p2, p4, self.M[idx], self.Wmat[idx], self.kth_rsd[idx]
+                    )
+                    self.spectrum_info["p0"]["{}_model".format(i)] = p0_obs
+                    self.spectrum_info["p2"]["{}_model".format(i)] = p2_obs
+                    self.spectrum_info["p4"]["{}_model".format(i)] = p4_obs
+                else:
+                    if self.compute_p0:
+                        p0_obs = self.observe_theory_nowindow(
+                            p0[:, np.newaxis], k, self.spectrum_info["p0"]["separation"]
+                        )
+                        self.spectrum_info["p0"]["{}_model".format(i)] = p0_obs[:, 0]
 
+                    if self.compute_p2:
+                        p2_obs = self.observe_theory_nowindow(
+                            p2[:, np.newaxis], k, self.spectrum_info["p2"]["separation"]
+                        )
+                        self.spectrum_info["p2"]["{}_model".format(i)] = p2_obs[:, 0]
 
-                if self.compute_p2:
-                    p2_obs = self.observe_theory_nowindow(p2[:,np.newaxis], k,
-                                                          self.spectrum_info['p2']['separation'])
-                    self.spectrum_info['p2']['{}_model'.format(i)] = p2_obs[:,0]
-
-                if self.compute_p4:
-                    p4_obs = self.observe_theory_nowindow(p4[:,np.newaxis], k,
-                                                          self.spectrum_info['p4']['separation'])
-                    self.spectrum_info['p4']['{}_model'.format(i)] = p4_obs[:,0]
-
+                    if self.compute_p4:
+                        p4_obs = self.observe_theory_nowindow(
+                            p4[:, np.newaxis], k, self.spectrum_info["p4"]["separation"]
+                        )
+                        self.spectrum_info["p4"]["{}_model".format(i)] = p4_obs[:, 0]
 
         # package everything up into one big model datavector
         model = []
         for t in self.spectrum_types:
-            if t[0] == 'p':
+            if t[0] == "p":
                 for i in self.use_lens_samples:
-                    m = self.spectrum_info[t]['{}_model'.format(i)]
+                    m = self.spectrum_info[t]["{}_model".format(i)]
                     model.append(m)
-            elif t[2] == 'k':
+            elif t[2] == "k":
                 for i in self.use_source_samples:
                     for j in self.use_source_samples:
-                        m = self.spectrum_info[t]['{}_{}_model'.format(i, j)]
-                        model.append(m)
-                                    
-            elif (t[2] == 'd') & (t[3] == 'k'):
-                for i in self.use_lens_samples:
-                    for j in self.use_source_samples:
-                        m = self.spectrum_info[t]['{}_{}_model'.format(i, j)]
+                        m = self.spectrum_info[t]["{}_{}_model".format(i, j)]
                         model.append(m)
 
-            elif (t[3] == 'd') | (t[3] == 'c'):
+            elif (t[2] == "d") & (t[3] == "k"):
                 for i in self.use_lens_samples:
-                    m = self.spectrum_info[t]['{}_model'.format(i)]
+                    for j in self.use_source_samples:
+                        m = self.spectrum_info[t]["{}_{}_model".format(i, j)]
+                        model.append(m)
+
+            elif (t[3] == "d") | (t[3] == "c"):
+                for i in self.use_lens_samples:
+                    m = self.spectrum_info[t]["{}_model".format(i)]
                     model.append(m)
 
             else:
-                m = self.spectrum_info[t]['model'.format(i)]
-                model.append(m)                        
+                m = self.spectrum_info[t]["model".format(i)]
+                model.append(m)
 
         model = np.hstack(model)
         self.model_pred = model
 
         mask = self.scale_mask
-        diff = self.spectra['value'][mask] - model[mask]
+        diff = self.spectra["value"][mask] - model[mask]
         chi2 = np.dot(diff, np.dot(self.cinv, diff))
 
-        return(-0.5*chi2)
+        return -0.5 * chi2
