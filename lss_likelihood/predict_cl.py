@@ -5,6 +5,7 @@
 import numpy as np
 from scipy.integrate import simps
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
+from scipy.interpolate import interp1d
 
 
 class AngularPowerSpectra():
@@ -216,14 +217,14 @@ class AngularPowerSpectra():
         # Now interpolate onto a regular ell grid.
         lval = np.arange(Lmax)
         if Cdd is not None:
-            Cdd = Spline(ell, Cdd)(lval).reshape(-1, self.n_lens)
+            Cdd = interp1d(ell, Cdd, axis=0, kind='cubic', fill_value='extrapolate')(lval).reshape(-1, self.n_lens)
         if Cdk is not None:
-            Cdk = Spline(ell, Cdk)(lval).reshape(-1, self.n_lens * self.n_source)
+            Cdk = interp1d(ell, Cdk, axis=0, kind='cubic', fill_value='extrapolate')(lval).reshape(-1, self.n_lens * self.n_source)
         if Ckk is not None:
-            Ckk = Spline(ell, Ckk)(lval).reshape(-1, self.n_source * self.n_source)
+            Ckk = interp1d(ell, Ckk, axis=0, kind='cubic', fill_value='extrapolate')(lval).reshape(-1, self.n_source * self.n_source)
         if Cdcmbk is not None:
-            Cdcmbk = Spline(ell, Cdcmbk)(lval).reshape(-1, self.n_lens)
+            Cdcmbk = interp1d(ell, Cdcmbk, axis=0, kind='cubic', fill_value='extrapolate')(lval).reshape(-1, self.n_lens)
         if Ccmbkcmbk is not None:
-            Ccmbkcmbk = Spline(ell, Ccmbkcmbk)(lval)
+            Ccmbkcmbk = interp1d(ell, Ccmbkcmbk, axis=0, kind='cubic', fill_value='extrapolate')(lval)
 
         return((lval, Cdd, Cdk, Ckk, Cdcmbk, Ccmbkcmbk))

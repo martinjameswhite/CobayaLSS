@@ -127,9 +127,9 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
         requirements = []
         for t in self.spectrum_types:
-
+            print(self.use_lens_samples)
             #get rid of bins we don't want
-            if (t[0]=='p') | (t[-2]=='d'):
+            if (t[0]=='p') | (t[:3] == 'c_d'):
                 if self.use_lens_samples is not None:
                     idx = (((self.spectra['spectrum_type'] == t) &
                             (np.in1d(self.spectra['zbin0'], self.use_lens_samples))) |
