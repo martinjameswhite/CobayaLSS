@@ -8,6 +8,7 @@ nchi_proj: 101
 halofit_pmm: False
 zstar: 1098.0
 use_lens_samples: None
+dummy_cov: False
 
 params:
   b1_0:
