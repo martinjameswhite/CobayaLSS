@@ -41,6 +41,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
     scale_cuts: Optional[Dict[str, float]]
     zstar: Optional[float]
     halofit_pmm: bool
+    dummy_cov: bool
 
     # k = convergence
     # d = (galaxy) density
@@ -243,7 +244,11 @@ class HarmonicSpaceWLxRSD(Likelihood):
 #                self.ell_obs.append(np.loadtxt(ell_obs_files[i]))
 
         self.setup_scale_cuts()
-        self.load_covariance_matrix(datavector_info)
+        
+        if not self.dummy_cov:
+            self.load_covariance_matrix(datavector_info)
+        else:
+            self.cinv = np.diagonal(np.ones(len(self.spectra["value"][self.scale_mask])))
 
         # check if we have emulators for these statistics
         if hasattr(self, "emulator_weights"):
