@@ -93,7 +93,7 @@ class AngularPowerSpectra:
         self.w_cmbk *= self.chival * (self.chistar - self.chival) / self.chistar
 
     def __init__(
-        self, z, dndz_lens, dndz_source, Nchi=101, d_x_cmbk=True, cmbk_x_cmbk=True
+        self, z, dndz_lens, dndz_source, Nchi=201, d_x_cmbk=True, cmbk_x_cmbk=True
     ):
         """
         Set up the class.
@@ -160,8 +160,8 @@ class AngularPowerSpectra:
         smag,
         a_ia,
         eta_ia,
-        Nell=50,
-        Lmax=1001,
+        Nell=200,
+        Lmax=3001,
     ):
         """Computes C_l^{gg} and C_l^{kg}."""
 

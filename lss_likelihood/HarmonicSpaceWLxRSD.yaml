@@ -4,6 +4,7 @@ datavector_info_filename: None
 zmin_proj: 0.0
 zmax_proj: 2.0
 nz_proj: 21
+nz_pk: 30
 nchi_proj: 101
 halofit_pmm: False
 zstar: 1098.0
