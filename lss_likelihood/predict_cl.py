@@ -32,7 +32,8 @@ class AngularPowerSpectra:
             g *= dndz_n * Ez / 2997.925
             g = self.chival * simps(g, x=chivalp, axis=0)
             self.w_mag[i] = (
-                self.smag[i] * 1.5 * (self.OmM) / 2997.925**2 * (1 + self.zval) * g
+#                self.smag[i] * 1.5 * (self.OmM) / 2997.925**2 * (1 + self.zval) * g
+                1.5 * (self.OmM) / 2997.925**2 * (1 + self.zval) * g                
             )
 
     def compute_galaxy_convergence_kernels(self, Nchi=101):
@@ -174,6 +175,7 @@ class AngularPowerSpectra:
         if chistar != self.chistar:
             self.set_geometry(chiz, ez, omega_m, chistar)
 
+
         ell = np.logspace(1, np.log10(Lmax), Nell)  # More ell's are cheap.
         Cdd = np.zeros((Nell, self.n_lens, self.Nchi))
         Cdk = np.zeros((Nell, self.n_lens * self.n_source, self.Nchi))
@@ -194,19 +196,19 @@ class AngularPowerSpectra:
                     / chi**2
                     * Pgg[i].P(self.zeff_d[i], kval)
                 )
-                f1m2 = (
-                    self.w_d[i][j]
+                f1m2 = (self.smag[i]
+                    * self.w_d[i][j]
                     * self.w_mag[i][j]
                     / chi**2
                     * Pgm[i].P(self.zeff_d[i], kval)
                 )
-                m1f2 = (
-                    self.w_mag[i][j]
+                m1f2 = (self.smag[i]
+                    * self.w_mag[i][j]
                     * self.w_d[i][j]
                     / chi**2
                     * Pgm[i].P(self.zeff_d[i], kval)
                 )
-                m1m2 = self.w_mag[i][j] ** 2 / chi**2 * Pmm.P(self.zval[j], kval)
+                m1m2 = (self.smag[i] * self.w_mag[i][j]) ** 2 / chi**2 * Pmm.P(self.zval[j], kval)
                 Cdd[:, i, j] = f1f2 + f1m2 + m1f2 + m1m2
 
         for i in range(self.n_lens):
@@ -218,8 +220,8 @@ class AngularPowerSpectra:
                     / chi**2
                     * Pgm[i].P(self.zeff_d[i], kval)
                 )
-                m1f2 = (
-                    self.w_mag[i][j]
+                m1f2 = (self.smag[i]
+                    * self.w_mag[i][j]
                     * self.w_cmbk[i]
                     / chi**2
                     * Pmm.P(self.zval[j], kval)
@@ -242,14 +244,14 @@ class AngularPowerSpectra:
                         / chi**2
                         * Pgm[i].P(self.zeff_d[i], kval)
                     )
-                    f1m2 = (
-                        self.w_d[j][k]
+                    f1m2 = (self.smag[i]
+                        * self.w_d[j][k]
                         * self.w_mag[j][k]
                         / chi**2
                         * Pgm[i].P(self.zeff_d[i], kval)
                     )
-                    m1i2 = (
-                        self.w_mag[i][k]
+                    m1i2 = (self.smag[i]
+                        * self.w_mag[i][k]
                         * self.w_ia[j][k]
                         / chi**2
                         * Pmm.P(self.zval[k], kval)
@@ -258,7 +260,7 @@ class AngularPowerSpectra:
 
         counter = 0
         for i in range(self.n_source):
-            for j in range(self.n_source):
+            for j in range(i,self.n_source):
                 if j>i:continue
                 for k, chi in enumerate(self.chival):
                     kval = (ell + 0.5) / chi
@@ -286,8 +288,8 @@ class AngularPowerSpectra:
                         / chi**2
                         * Pmm.P(self.zval[k], kval)
                     )
-                    Ckk[:, counter] = f1f2 + f1i2 + i1f2 + i1i2
-                    counter += 1
+                    Ckk[:, counter, k] = f1f2 + f1i2 + i1f2 + i1i2
+                counter += 1
 
         # and then just integrate them.
 
@@ -325,7 +327,7 @@ class AngularPowerSpectra:
         if Ckk is not None:
             Ckk = interp1d(ell, Ckk, axis=0, kind="cubic", fill_value="extrapolate")(
                 lval
-            ).reshape(-1, self.n_source * (self.n_source + 1) / 2)
+            ).reshape(-1, int(self.n_source * (self.n_source + 1) / 2))
         if Cdcmbk is not None:
             Cdcmbk = interp1d(
                 ell, Cdcmbk, axis=0, kind="cubic", fill_value="extrapolate"

@@ -34,6 +34,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
     zmax_proj: float
     nz_proj: int
     nz_pk: int
+    z_pk: Optional[Union[Sequence, np.ndarray]]
     nchi_proj: int
     emulator_weights: Optional[Dict[str, str]]
     emulator_params: Optional[Dict[str, str]]
@@ -51,7 +52,13 @@ class HarmonicSpaceWLxRSD(Likelihood):
     def initialize(self):
         """Sets up the class."""
         self.z = np.linspace(self.zmin_proj, self.zmax_proj, self.nz_proj)
-        self.z_pk = np.linspace(self.zmin_proj, self.zmax_proj, self.nz_pk)        
+
+        if not hasattr(self, "z_pk"):
+            self.z_pk = np.linspace(self.zmin_proj, self.zmax_proj, self.nz_pk)
+        else:
+            self.z_pk = np.array(self.z_pk)
+            self.z_pk.sort()
+            
         self.nk = 100
         self.k = np.logspace(-3, 0, self.nk)
         self.compute_c_kk = False
@@ -154,7 +161,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
                     self.spectra = self.spectra[idx]
 
-            if t[-2] == "k":
+            if t[-1] == "k":
                 if self.use_source_samples is not None:
                     idx = (
                         (self.spectra["spectrum_type"] == t)
@@ -171,7 +178,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
             if (t[:3] == "c_d") | (t[0] == "p"):
                 self.use_lens_samples = bins0
                 self.ndbins = len(bins0)
-            elif t[-2] == "k":
+            elif t[-1] == "k":
                 self.use_source_samples = bins1
                 self.nsbins = len(bins1)
 
@@ -854,7 +861,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
 
                 n_spec_cell = len(cell_spec_interpolator)
                 self.rs_power_spectra = np.zeros(
-                    (self.ndbins, self.nz_proj, self.nk, 3)
+                    (self.ndbins, self.nz_pk, self.nk, 3)
                 )
             else:
                 cosmo_params = [
@@ -863,7 +870,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 ]
 
                 self.rs_power_spectra = np.zeros(
-                    (self.ndbins, self.nz_proj, self.emulators["p_mm"].nk, 3)
+                    (self.ndbins, self.nz_pk, self.emulators["p_mm"].nk, 3)
                 )
 
             for idx, i in enumerate(self.use_lens_samples):
@@ -876,15 +883,15 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 bias_params = [b1, b2, bs, bk, sn]
                 if not self.cell_emulators:
 
-                    spectra = np.zeros((n_spec_cell, self.nk, self.nz_proj))
+                    spectra = np.zeros((n_spec_cell, self.nk, self.nz_pk))
                     for j in range(n_spec_cell):
                         if (j == 0) & self.halofit_pmm:
                             spectra[j, ...] = (
-                                pmm_interpolator.P(self.z, self.k * h).T * h**3
+                                pmm_interpolator.P(self.z_pk, self.k * h).T * h**3
                             )
                         else:
                             spectra[j, ...] = (
-                                cell_spec_interpolator[j].P(self.z, self.k).T
+                                cell_spec_interpolator[j].P(self.z_pk, self.k).T
                             )
 
                     if self.heft:
@@ -935,16 +942,16 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 else:
                     params = cosmo_params + bias_params
 
-                    cparam_grid = np.zeros((len(self.z), len(cosmo_params) + 1))
-                    param_grid = np.zeros((len(self.z), len(params) + 1))
+                    cparam_grid = np.zeros((len(self.z_pk), len(cosmo_params) + 1))
+                    param_grid = np.zeros((len(self.z_pk), len(params) + 1))
 
                     params = np.array(params)
                     cosmo_params = np.array(cosmo_params)
 
                     cparam_grid[:, :-1] = cosmo_params
                     param_grid[:, :-1] = params
-                    cparam_grid[:, -1] = self.z
-                    param_grid[:, -1] = self.z
+                    cparam_grid[:, -1] = self.z_pk
+                    param_grid[:, -1] = self.z_pk
 
                     k, pmm = self.emulators["p_mm"](cparam_grid)
                     k, pdm = self.emulators["p_dm"](param_grid)
@@ -954,13 +961,13 @@ class HarmonicSpaceWLxRSD(Likelihood):
                     pdm = pdm.T
                     pdd = pdd.T
 
-                pmm_spline = PowerSpectrumInterpolator(self.z, self.k, pmm.T)
+                pmm_spline = PowerSpectrumInterpolator(self.z_pk, self.k, pmm.T)
                 self.rs_power_spectra[idx, :, :, 0] = pmm.T
 
-                pdm_spline = PowerSpectrumInterpolator(self.z, self.k, pdm.T)
+                pdm_spline = PowerSpectrumInterpolator(self.z_pk, self.k, pdm.T)
                 self.rs_power_spectra[idx, :, :, 1] = pdm.T
 
-                pdd_spline = PowerSpectrumInterpolator(self.z, self.k, pdd.T)
+                pdd_spline = PowerSpectrumInterpolator(self.z_pk, self.k, pdd.T)
                 self.rs_power_spectra[idx, :, :, 2] = pdd.T
 
                 pmm_spline = pmm_spline
@@ -968,7 +975,7 @@ class HarmonicSpaceWLxRSD(Likelihood):
                 pdd_splines.append(pdd_spline)
 
             smag = np.array(
-                [params_values["smag_{}".format(i)] for d in range(self.ndbins)]
+                [params_values["smag_{}".format(d)] for d in self.use_lens_samples]
             )
             a_ia = params_values["a_ia"]
             eta_ia = params_values["eta_ia"]
