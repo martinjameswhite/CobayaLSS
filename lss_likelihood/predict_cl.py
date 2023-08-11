@@ -294,8 +294,8 @@ class AngularPowerSpectra():
         ell     = np.logspace(1,np.log10(Lmax),Nell) # More ell's are cheap.
         Cgg,Ckg = np.zeros( (Nell,self.Nchi) ),np.zeros( (Nell,self.Nchi) )
         Pofk    = self.pofk(pk_pars)        # Computes all P(k,z)'s.
-        Pgg     = Spline(Pofk[0],Pofk[1])   # Extrapolates as needed.
-        Pgm     = Spline(Pofk[0],Pofk[2])   # Extrapolates as needed.
+        Pgg     = Spline(Pofk[0],Pofk[1],ext=3)# Extrapolates with bndry.
+        Pgm     = Spline(Pofk[0],Pofk[2],ext=3)# Extrapolates with bndry.
         Pmm     = Spline(Pofk[0],Pofk[3],ext=1)# Extrapolates with zeros.
         # Work out the integrands for C_l^{gg} and C_l^{kg}.
         for i,chi in enumerate(self.chival):
