@@ -108,9 +108,9 @@ class AngularPowerSpectra():
         fmag   = self.mag_bias_kernel(smag)
         # Fit splines to our P(k).  The spline extrapolates as needed.
         pars   = np.array(cpars+bparsA+[self.zeff])
-        Pgg    = Spline(*PggEmu(pars))
+        Pgg    = Spline(*PggEmu(pars),ext=3) # Extrapolate with bndry.
         pars   = np.array(cpars+bparsX+[self.zeff])
-        Pgm    = Spline(*PgmEmu(pars))
+        Pgm    = Spline(*PgmEmu(pars),ext=3) # Extrapolate with bndry.
         pars   = np.array(cpars+[self.zeff])
         Pmm    = Spline(*PmmEmu(pars),ext=1) # Extrapolate with zeros.
         # Work out the integrands for C_l^{gg} and C_l^{kg}.
