@@ -26,6 +26,7 @@ python3 -Xfrozen_models=off -m ipykernel install --user --name cobaya --display-
 python3 -m pip install git+https://github.com/CobayaSampler/cobaya
 #
 # and any "cosmo" packages it wants, here in $SCRATCH/Cobaya
+rm -rf $SCRATCH/Cobaya/Packages
 cobaya-install cosmo -p $SCRATCH/Cobaya/Packages
 # you likely need to "upgrade" the packages:
 cobaya-install cosmo --upgrade -p $SCRATCH/Cobaya/Packages
